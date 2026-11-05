@@ -114,9 +114,10 @@ jobs:
         env:
           ARCH: ${{ matrix.arch }}
         run: |
-          for image in portal default; do
+          for dockerfile in apps/portal/Dockerfile sandbox-images/default/Dockerfile; do
+            image=$(basename "$(dirname "$dockerfile")")
             bash build/build-docker.sh --image "sandbox-$image:test" \
-              --path "images/$image/Dockerfile" --args "--platform linux/$ARCH"
+              --path "$dockerfile" --args "--platform linux/$ARCH"
           done
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))

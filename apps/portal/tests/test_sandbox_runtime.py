@@ -13,7 +13,7 @@ from types import SimpleNamespace
 
 import pytest
 
-SOURCE = Path(__file__).parents[3] / "packages/common-tools/sandbox/runtime.py"
+SOURCE = Path(__file__).parents[3] / "sandbox-images/common-tools/sandbox/runtime.py"
 sys.path.insert(0, str(SOURCE.parent))
 spec = importlib.util.spec_from_file_location("sandbox_runtime", SOURCE)
 runtime = importlib.util.module_from_spec(spec)

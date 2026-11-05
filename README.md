@@ -7,14 +7,14 @@ and runtime policy.
 
 ## Repository
 
-| Path                                        | Purpose                                                                            |
-| ------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `apps/portal/`                              | FastAPI API, browser UI, metadata migrations and tests                             |
-| `packages/common-tools/`                    | Optional startup scripts and supervised-service support for workload images        |
-| `images/`                                   | Portal and default workload Dockerfiles; organizations can supply their own images |
-| `charts/caipe-sandbox/`                     | Installable portal chart with optional application dependencies                    |
-| `charts/agent-sandbox/`, `charts/omnigent/` | Optional application subcharts                                                     |
-| `docs/`                                     | Docusaurus guides and interactive architecture/configuration explorers             |
+| Path                                        | Purpose                                                                     |
+| ------------------------------------------- | --------------------------------------------------------------------------- |
+| `apps/portal/`                              | Portal API/UI, Dockerfile, metadata migrations and tests                    |
+| `sandbox-images/common-tools/`              | Optional startup scripts and supervised-service support for workload images |
+| `sandbox-images/default/`                   | Default workload Dockerfile; organizations can supply their own images      |
+| `charts/caipe-sandbox/`                     | Installable portal chart with optional application dependencies             |
+| `charts/agent-sandbox/`, `charts/omnigent/` | Optional application subcharts                                              |
+| `docs/`                                     | Docusaurus guides and interactive architecture/configuration explorers      |
 
 ## Try the portal UI locally
 

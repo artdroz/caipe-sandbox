@@ -25,10 +25,10 @@ COPY apps/portal/pyproject.toml apps/portal/uv.lock ./
 RUN uv sync --locked --no-default-groups --no-install-project --no-editable --no-build
 
 FROM dependencies AS test
-ENV UV_PROJECT_ENVIRONMENT=/opt/test-venv PYTHONPATH=/repo/packages/common-tools
+ENV UV_PROJECT_ENVIRONMENT=/opt/test-venv PYTHONPATH=/repo/sandbox-images/common-tools
 COPY apps/portal/portal/ ./portal/
 COPY apps/portal/tests/ ./tests/
-COPY packages/common-tools/ /repo/packages/common-tools/
+COPY sandbox-images/common-tools/ /repo/sandbox-images/common-tools/
 COPY apps/portal/examples/ ./examples/
 COPY charts/ /repo/charts/
 COPY --from=browser /app/portal/static/ ./portal/static/

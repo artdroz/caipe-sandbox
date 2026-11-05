@@ -88,7 +88,7 @@ export const modules = {
     job: "Explicit, versioned schema migrations.",
   },
   runtime: {
-    path: "packages/common-tools/sandbox/runtime.py",
+    path: "sandbox-images/common-tools/sandbox/runtime.py",
     job: "Engineering-image startup, hooks and supervised services.",
   },
   chart: {
@@ -100,8 +100,8 @@ export const modules = {
     job: "Example profiles and deployment values.",
   },
   images: {
-    path: "images/",
-    job: "Build the workload images and install their runtime/tools.",
+    path: "sandbox-images/",
+    job: "Workload image recipes and their shared startup/service tools.",
   },
   database: {
     path: "apps/portal/portal/storage/database.py",

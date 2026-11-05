@@ -2,9 +2,8 @@
 !apps/
 !apps/portal/
 !apps/portal/**
-!packages/
-!packages/common-tools/
-!packages/common-tools/**
+!sandbox-images/
+!sandbox-images/**
 !charts/
 !charts/**
 apps/portal/node_modules/

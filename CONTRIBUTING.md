@@ -27,13 +27,13 @@ this development server or put the test harness in a production command.
 ## Images and private extensions
 
 ```sh
-docker build -f images/portal/Dockerfile -t sandbox-portal:local .
-docker build -f images/default/Dockerfile -t sandbox-default:local .
+docker build -f apps/portal/Dockerfile -t sandbox-portal:local .
+docker build -f sandbox-images/default/Dockerfile -t sandbox-default:local .
 ```
 
 The default image contains a persistent shell and `sandbox-start` /
 `sandbox-control`; it does not install or sign into agent products. A private
-image can derive from it or copy `packages/common-tools/sandbox/`, add its own
+image can derive from it or copy `sandbox-images/common-tools/sandbox/`, add its own
 binaries and startup/service files, and keep its Dockerfile and registry private.
 Point the deployment-managed profile at that image's immutable digest. Neither
 private image builds nor private deployment values belong in this repository.

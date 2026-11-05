@@ -60,7 +60,7 @@ class PreviewWorkspace:
                     "service": {
                         "omnigent.conf": (
                             Path(__file__).parents[3]
-                            / "packages/common-tools/sandbox/integrations/omnigent/service.conf"
+                            / "sandbox-images/common-tools/sandbox/integrations/omnigent/service.conf"
                         ).read_text()
                     },
                 },

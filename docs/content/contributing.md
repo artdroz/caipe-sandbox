@@ -2,9 +2,10 @@
 title: Contributing and releases
 ---
 
-The portal source is in `apps/portal`, reusable workload scripts are in
-`packages/common-tools`, Dockerfiles are in `images`, and Helm sources are in
-`charts`. Integration-specific code belongs in its named integration folder.
+The portal source and its Dockerfile are in `apps/portal`. Workload images live
+under `sandbox-images`: `default/Dockerfile` builds the baseline image, and
+`common-tools` holds shared startup/service scripts. Helm sources are in `charts`.
+Integration-specific code belongs in its named integration folder.
 
 Use `make preview` for a local portal with fake resources and identity, `make test`
 for regression checks and `make docs` to build this site. The preview does not

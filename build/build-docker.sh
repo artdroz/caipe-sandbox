@@ -16,7 +16,7 @@ if [[ -z "$image" || -z "$dockerfile" ]]; then
 fi
 read -r -a docker_args <<< "$build_arguments"
 
-if [[ "$dockerfile" == images/portal/Dockerfile ]]; then
+if [[ "$dockerfile" == apps/portal/Dockerfile ]]; then
   audit_id="${GITHUB_RUN_ID:-local}-${GITHUB_RUN_ATTEMPT:-1}-$(date -u +%s)"
   for target in browser-audit audit; do
     docker build "${docker_args[@]}" --target "$target" \

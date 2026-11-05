@@ -70,7 +70,7 @@ exit 0
             return result, commands_file.read_text()
 
     def test_portal_audits_dependencies_then_scans_the_exported_image(self):
-        result, commands = self.run_build("images/portal/Dockerfile")
+        result, commands = self.run_build("apps/portal/Dockerfile")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("--target browser-audit", commands)
         self.assertIn("--target audit", commands)
@@ -92,7 +92,7 @@ exit 0
 
     def test_contributed_images_use_the_scan_without_the_portal_audit_target(self):
         result, commands = self.run_build(
-            "images/example/Dockerfile"
+            "sandbox-images/example/Dockerfile"
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn("--target audit", commands)
@@ -101,7 +101,7 @@ exit 0
         self.assertNotIn("accepted-vendor-risks.yaml", commands)
 
     def test_scanner_is_pinned_restricted_and_offline_with_the_image(self):
-        result, commands = self.run_build("images/portal/Dockerfile")
+        result, commands = self.run_build("apps/portal/Dockerfile")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("docker pull " + SCANNER_IMAGE, commands)
         runs = [
@@ -131,7 +131,7 @@ exit 0
         self.assertNotIn("test-token-must-not-be-forwarded", commands)
 
     def test_database_download_has_no_image_and_uses_only_official_repositories(self):
-        result, commands = self.run_build("images/portal/Dockerfile")
+        result, commands = self.run_build("apps/portal/Dockerfile")
         self.assertEqual(result.returncode, 0, result.stderr)
         runs = [
             line for line in commands.splitlines() if line.startswith("docker run ")
@@ -159,7 +159,7 @@ exit 0
         ):
             with self.subTest(failure=failure):
                 result, commands = self.run_build(
-                    "images/portal/Dockerfile", failure
+                    "apps/portal/Dockerfile", failure
                 )
                 self.assertNotEqual(result.returncode, 0)
                 if failure == "audit":

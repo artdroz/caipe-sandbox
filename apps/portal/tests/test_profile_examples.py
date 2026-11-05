@@ -130,7 +130,7 @@ def test_omnigent_profile_startup_waits_for_cli_login_and_preserves_tokens(tmp_p
     executable.chmod(0o700)
     server = "https://omnigent.example.com"
     process = subprocess.Popen(
-        [sys.executable, str(APP.parents[1] / "packages/common-tools/sandbox/integrations/omnigent/main.py")],
+        [sys.executable, str(APP.parents[1] / "sandbox-images/common-tools/sandbox/integrations/omnigent/main.py")],
         env={
             **os.environ,
             "HOME": str(tmp_path),
