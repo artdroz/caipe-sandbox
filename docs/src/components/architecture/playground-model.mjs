@@ -183,7 +183,7 @@ const info = {
       "The enforcing CNI and deployed network policies control permitted destinations; external services still require their own credentials.",
     state:
       "Operator-managed routing, network policy and any deployment-specific NAT/proxy configuration.",
-    body: "The direct backend allows cluster DNS plus public IPv4 HTTPS by default, excluding private and link-local ranges. Operators can disable publicHttpsEgress or configure extraEgress. NetworkPolicy requires an enforcing CNI; it does not provide routing or NAT. No Envoy service is integrated by the portal.",
+    body: "The optional portal baseline is off by default. When enabled for the direct backend, it allows cluster DNS and public IPv4 TCP/443 unless publicHttpsEgress is disabled, excluding selected private/link-local ranges. Operator policies still apply. NetworkPolicy needs an enforcing CNI and does not provide routing or NAT. Envoy is not integrated.",
     docs: "/guide/security",
   },
   portalUI: {
@@ -219,13 +219,13 @@ const info = {
     identity:
       "Verified portal identity for user requests; scoped Kubernetes identity and, if enabled, gateway client TLS for native operations.",
     state:
-      "Admin gates/announcement use the metadata store. Micro VM ownership, sharing and applied profiles still use native retained metadata.",
+      "Sandbox inventory, ownership, namespace grants, applied profiles, intended manifests and controls use the metadata database; native resources provide observations.",
     body: "Shared management validates identity, grants, profile and resource choices. Its selected native integration owns provisioning, lifecycle and terminal transport.",
     docs: "/guide/architecture#runtime-boundaries",
   },
   metadata: {
     title: "Portal metadata",
-    subtitle: "Administrative controls (Postgres/SQLite)",
+    subtitle: "Desired state (PostgreSQL/SQLite)",
     icon: "database",
     tone: "storage",
     where:
@@ -233,8 +233,8 @@ const info = {
     identity:
       "Portal database access, never a direct browser/micro VM connection.",
     state:
-      "Global/per-user access gates and administrative announcement. Micro VM inventory is not cut over.",
-    body: "Storage is summarized here because its deployment is independent of the integration selection. The current portal requires one replica and Recreate upgrades.",
+      "Inventory, ownership, sharing, applied profiles, saved intent, operation leases, access controls and announcements.",
+    body: "SQLite requires one replica and Recreate. External PostgreSQL supports multiple replicas and schema-compatible rolling updates; schema migrations use Recreate after old writers stop.",
     docs: "/guide/metadata",
   },
   kubernetes: {
@@ -245,7 +245,7 @@ const info = {
     where: "Cluster control plane, separate from the portal process.",
     identity: "Scoped ServiceAccounts, RBAC and operator-installed admission.",
     state:
-      "Native Sandbox/Pod/claim records, ownership and retained profile metadata.",
+      "Native Sandbox/Pod/claim objects and current runtime state. Portal ownership and intended configuration are stored in its metadata database.",
     body: "Direct provisioning uses native resources. With OpenShell, the gateway owns native lifecycle while the portal retains only its permitted metadata/management access.",
     docs: "/guide/deployment",
   },
@@ -285,7 +285,7 @@ const info = {
     state:
       "Process memory and terminals stop on suspension. Only data written to the persistent mount survives.",
     body: "Portal terminals arrive through the selected native integration. An Omnigent host can start agents through its own host tunnel. These are distinct execution paths.",
-    docs: "/guide/workspaces",
+    docs: "/guide/concepts#terminal-sessions-and-processes",
   },
   volume: {
     title: "Micro VM storage",
@@ -297,7 +297,7 @@ const info = {
     state:
       "Projects and tool credentials written under persistent HOME. Deletion follows native ownership and the storage reclaim policy.",
     body: "Direct Agent Sandbox uses the home claim; protected OpenShell micro VMs use native micro VM storage. Suspension retains files, not process memory.",
-    docs: "/guide/workspaces",
+    docs: "/guide/metadata",
   },
   omniServer: {
     title: "Omnigent server",
@@ -348,7 +348,7 @@ const info = {
       "Gateway-owned trusted execution and operator-installed admission.",
     state:
       "Native runtime/protection state; persistent identities/settings belong to the gateway store.",
-    body: "Routes protected commands to the approved Kata workload and checks relayed network requests against policy before opening approved external connections. OpenShell policy, platform admission and CNI are separate enforcement layers. The Omnigent host tunnel is a separate application execution path; its protection must be checked for the actual profile/runtime.",
+    body: "Routes protected commands to the deployment-approved workload and checks relayed network requests before opening permitted connections. OpenShell policy, platform admission and CNI are separate enforcement layers. The Omnigent host tunnel is a separate application execution path; verify its protection for the actual profile/runtime.",
     docs: "/guide/security",
   },
   idp: {
@@ -417,7 +417,7 @@ export function makePlayground(value) {
       75,
       os
         ? {
-            body: "Protected workload requests use OpenShell's native policy-controlled network path before cluster egress. The portal installs a deny-all direct-egress baseline for protected namespaces; it does not add the direct backend's public-HTTPS grant. Approved binaries/endpoints come from the applied OpenShell policy. Native boundary transport, CNI enforcement and upstream connectivity must be supplied and verified by the deployment. This box summarizes platform networking, not a new proxy service.",
+            body: "Protected requests use OpenShell's supervisor-mediated network path. Its native outer fence must block direct workload egress. The optional portal deny-all baseline is off by default and never adds the direct backend's public-HTTPS grant to OpenShell workspaces. Verify native transport, CNI enforcement, all selecting policies and supervisor connectivity. This box represents platform networking, not a new proxy service.",
           }
         : {},
     ),
@@ -814,15 +814,15 @@ export function describeInteraction(value) {
       steps: os
         ? [
             "A workload process makes a network request under protected OpenShell execution.",
-            "The native protected networking path checks the applied policy's allowed binaries and endpoints; direct workload sockets remain denied by the namespace baseline.",
+            "The supervisor checks the applied policy's binaries/endpoints; the native outer fence must block direct workload sockets. The optional portal baseline is a separate policy.",
             "The trusted supervisor opens the approved external connection and relays traffic through the protected channel. Platform routing and CNI enforcement remain deployment prerequisites.",
             "Responses return over the established connection. This does not expose a public inbound Pod endpoint.",
           ]
         : [
-            "A process in the Pod makes a request; cluster DNS resolution is separately permitted by the namespace baseline.",
-            "An enforcing CNI applies the namespace NetworkPolicy. By default the direct backend permits public IPv4 TCP/443, excluding private and link-local ranges; publicHttpsEgress and extraEgress are operator settings.",
+            "A process in the Pod makes a request; DNS and destination connectivity depend on operator networking and the policies selecting the Pod.",
+            "An enforcing CNI applies selecting policies. If enabled, the optional portal baseline permits DNS and public IPv4 TCP/443 with selected private/link-local exclusions; publicHttpsEgress and extraEgress customize it.",
             "Platform routing and any required NAT carry permitted traffic to the external destination. NetworkPolicy alone does not establish Internet connectivity.",
-            "Responses return over the established connection. Inbound access remains denied by the baseline.",
+            "Responses return over the established connection. Inbound access follows operator policies and, when enabled, the portal's deny-ingress baseline.",
           ],
       note: "The separate Omnigent host-tunnel connection also needs a permitted route to its configured endpoint. Kata changes compute isolation; it does not grant network access.",
     },

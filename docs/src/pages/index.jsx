@@ -8,7 +8,7 @@ const sections = [
     title: "Getting started",
     to: "/guide/getting-started",
     description:
-      "Sign in, create a micro VM, open a terminal, and suspend or resume it.",
+      "Deploy the portal with Helm, configure sign-in, and verify your first sandbox.",
   },
   {
     title: "Profiles",
@@ -17,10 +17,10 @@ const sections = [
       "Configure images, startup commands, helpers, and resource limits.",
   },
   {
-    title: "Configuration explorer",
-    to: "/guide/configuration",
+    title: "Helm chart values",
+    to: "/guide/helm-values",
     description:
-      "Inspect profile, developer, and platform settings and their native field mappings.",
+      "Review chart inputs, repository defaults and deployment overrides.",
   },
   {
     title: "Code map",
@@ -35,10 +35,10 @@ const sections = [
       "Review platform prerequisites, authentication, and deployment checks.",
   },
   {
-    title: "Slides",
-    to: "/guide/slides",
+    title: "Capacity and scaling",
+    to: "/guide/scaling",
     description:
-      "A short technical introduction to the portal and its architecture.",
+      "Plan replica counts, workload limits, terminal recovery and capacity tests.",
   },
 ];
 
@@ -46,13 +46,13 @@ export default function Home() {
   const logo = useBaseUrl("/img/caipe-sandbox-logo.svg");
   return (
     <Layout
-      title="Developer documentation"
-      description="CAIPE Sandbox developer documentation: micro VM lifecycle, profiles, configuration, architecture, and deployment."
+      title="Platform operator documentation"
+      description="CAIPE Sandbox platform operator documentation: deployment, profiles, isolation, configuration, architecture, and lifecycle."
     >
       <main className="developer-home shell-width">
         <header className="docs-intro">
           <div>
-            <p className="docs-label">Developer documentation</p>
+            <p className="docs-label">Platform operator documentation</p>
             <h1>CAIPE Sandbox</h1>
             <p className="docs-subtitle">Developer micro VMs on Kubernetes.</p>
             <p className="docs-description">
@@ -130,8 +130,7 @@ export default function Home() {
         <nav className="reference-links" aria-label="Additional documentation">
           <span>Reference</span>
           <Link to="/guide/security">Security</Link>
-          <Link to="/guide/metadata">Metadata and persistence</Link>
-          <Link to="/guide/workspaces">Micro VM lifecycle</Link>
+          <Link to="/guide/metadata">Database and persistence</Link>
         </nav>
       </main>
     </Layout>

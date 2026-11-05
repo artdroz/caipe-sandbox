@@ -1,0 +1,2369 @@
+{
+  "chartVersion": "0.7.0",
+  "profile": [
+    {
+      "path": "id",
+      "type": "string",
+      "required": true,
+      "pattern": "^[a-z][a-z0-9-]{0,39}$"
+    },
+    {
+      "path": "title",
+      "type": "string",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 80
+    },
+    {
+      "path": "description",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "maxLength": 1000
+    },
+    {
+      "path": "agentSandbox.spec",
+      "type": "object",
+      "required": true
+    },
+    {
+      "path": "openShell.spec",
+      "type": "object",
+      "required": true
+    },
+    {
+      "path": "envoyEgress",
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": false,
+      "default": null
+    },
+    {
+      "path": "terminal.command",
+      "type": "array",
+      "required": false,
+      "minItems": 1,
+      "maxItems": 64
+    },
+    {
+      "path": "helpers",
+      "type": "array",
+      "required": false,
+      "maxItems": 16
+    },
+    {
+      "path": "helpers[].id",
+      "type": "string",
+      "required": true,
+      "pattern": "^[a-z][a-z0-9-]{0,39}$"
+    },
+    {
+      "path": "helpers[].title",
+      "type": "string",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 60
+    },
+    {
+      "path": "helpers[].icon",
+      "type": "string",
+      "required": false,
+      "default": "terminal",
+      "enum": [
+        "terminal",
+        "code",
+        "git",
+        "package",
+        "folder",
+        "file",
+        "logs",
+        "key",
+        "play",
+        "refresh",
+        "download",
+        "upload",
+        "settings",
+        "info",
+        "external",
+        "server",
+        "database",
+        "network",
+        "globe",
+        "shield",
+        "disk",
+        "cpu",
+        "memory",
+        "box",
+        "claude",
+        "codex",
+        "caipe",
+        "omnigent"
+      ]
+    },
+    {
+      "path": "helpers[].script",
+      "type": "string",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 8192
+    },
+    {
+      "path": "helpers[].status.command",
+      "type": "array",
+      "required": true,
+      "minItems": 1,
+      "maxItems": 64
+    },
+    {
+      "path": "helpers[].status.json_field",
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": false,
+      "default": null,
+      "minLength": 1,
+      "maxLength": 120
+    },
+    {
+      "path": "helpers[].status.signed_in_exit_codes",
+      "type": "array",
+      "required": false,
+      "maxItems": 16
+    },
+    {
+      "path": "helpers[].status.signed_out_exit_codes",
+      "type": "array",
+      "required": false,
+      "maxItems": 16
+    },
+    {
+      "path": "helpers[].status.signed_out_contains",
+      "type": "array",
+      "required": false,
+      "maxItems": 16
+    },
+    {
+      "path": "ui.resources.default.requests.cpu",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.default.requests.memory",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.default.limits.cpu",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.default.limits.memory",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.default.storage",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.minimum.requests.cpu",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.minimum.requests.memory",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.minimum.limits.cpu",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.minimum.limits.memory",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.minimum.storage",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.maximum.requests.cpu",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.maximum.requests.memory",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.maximum.limits.cpu",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.maximum.limits.memory",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    },
+    {
+      "path": "ui.resources.maximum.storage",
+      "type": [
+        "string",
+        "integer",
+        "number"
+      ],
+      "required": true,
+      "minLength": 1,
+      "maxLength": 64
+    }
+  ],
+  "deployment": [
+    {
+      "path": "image.repository",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "image.digest",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "imagePullSecrets",
+      "type": "array",
+      "default": []
+    },
+    {
+      "path": "extraObjects",
+      "type": "array",
+      "default": []
+    },
+    {
+      "path": "agentSandbox.enabled",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "path": "omnigent.enabled",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "path": "kata.enabled",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "path": "observability.tracing.endpoint",
+      "type": "string",
+      "default": "",
+      "pattern": "^$|^https?://[^@?# ]+$"
+    },
+    {
+      "path": "observability.tracing.sampleRatio",
+      "type": "number",
+      "default": 0.1,
+      "minimum": 0,
+      "maximum": 1
+    },
+    {
+      "path": "openShell.enabled",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "path": "openShell.workspaceResources.enabled",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "path": "openShell.server.logLevel",
+      "type": "str",
+      "default": "info"
+    },
+    {
+      "path": "openShell.server.telemetryEnabled",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "path": "openShell.server.extraEnv",
+      "type": "list",
+      "default": [
+        {
+          "name": "OTEL_TRACES_SAMPLER",
+          "value": "parentbased_traceidratio"
+        },
+        {
+          "name": "OTEL_TRACES_SAMPLER_ARG",
+          "value": "0.1"
+        }
+      ]
+    },
+    {
+      "path": "openShell.server.drivers.kubernetes.workspaceMode",
+      "type": "str",
+      "default": "operator"
+    },
+    {
+      "path": "openShell.server.drivers.kubernetes.operatorNamespaceLabel",
+      "type": "str",
+      "default": "sandbox.caipe.io/openshell=true"
+    },
+    {
+      "path": "replicas",
+      "type": "integer",
+      "default": 1,
+      "minimum": 1
+    },
+    {
+      "path": "strategy.type",
+      "type": "string",
+      "default": "Recreate",
+      "enum": [
+        "Recreate",
+        "RollingUpdate"
+      ]
+    },
+    {
+      "path": "strategy.rollingUpdate.maxUnavailable",
+      "type": "int",
+      "default": 0
+    },
+    {
+      "path": "strategy.rollingUpdate.maxSurge",
+      "type": "int",
+      "default": 1
+    },
+    {
+      "path": "podDisruptionBudget.enabled",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "path": "podDisruptionBudget.minAvailable",
+      "type": [
+        "value",
+        "null"
+      ],
+      "default": 1
+    },
+    {
+      "path": "podDisruptionBudget.maxUnavailable",
+      "type": [
+        "value",
+        "null"
+      ]
+    },
+    {
+      "path": "topologySpreadConstraints",
+      "type": "array",
+      "default": []
+    },
+    {
+      "path": "nodeSelector",
+      "type": "object",
+      "default": {}
+    },
+    {
+      "path": "affinity",
+      "type": "object",
+      "default": {}
+    },
+    {
+      "path": "tolerations",
+      "type": "array",
+      "default": []
+    },
+    {
+      "path": "terminationGracePeriodSeconds",
+      "type": "integer",
+      "default": 240,
+      "minimum": 6,
+      "maximum": 900
+    },
+    {
+      "path": "shutdown.propagationSeconds",
+      "type": "integer",
+      "default": 10,
+      "minimum": 0,
+      "maximum": 60
+    },
+    {
+      "path": "shutdown.drainSeconds",
+      "type": "integer",
+      "default": 180,
+      "minimum": 0,
+      "maximum": 600
+    },
+    {
+      "path": "shutdown.serverGraceSeconds",
+      "type": "integer",
+      "default": 30,
+      "minimum": 5,
+      "maximum": 120
+    },
+    {
+      "path": "database.url",
+      "type": "string",
+      "default": "sqlite:////var/lib/portal/metadata.db"
+    },
+    {
+      "path": "database.existingSecret",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "path": "database.secretKey",
+      "type": "string",
+      "default": "url"
+    },
+    {
+      "path": "database.caSecret",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "path": "database.persistence.size",
+      "type": "string",
+      "default": "1Gi"
+    },
+    {
+      "path": "database.persistence.storageClass",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "path": "namespace.strategy",
+      "type": "string",
+      "default": "perSandbox",
+      "enum": [
+        "perUser",
+        "perSandbox"
+      ]
+    },
+    {
+      "path": "namespace.allowedStrategies",
+      "type": [
+        "array",
+        "null"
+      ],
+      "default": [
+        "perSandbox",
+        "perUser"
+      ],
+      "minItems": 1,
+      "maxItems": 2
+    },
+    {
+      "path": "namespace.labels",
+      "type": "object",
+      "default": {}
+    },
+    {
+      "path": "namespace.annotations",
+      "type": "object",
+      "default": {}
+    },
+    {
+      "path": "profiles",
+      "type": "array",
+      "default": [
+        {
+          "id": "engineering",
+          "title": "Engineering terminal",
+          "description": "A persistent workspace with profile-defined tools and helpers.",
+          "agentSandbox": {
+            "spec": {
+              "podTemplate": {
+                "spec": {
+                  "containers": [
+                    {
+                      "name": "host",
+                      "image": "python:3.12-slim@sha256:cb33f7f771ecec2ef1225cf39b159591a040391bd73e4c01f00fdfc4c47611d2",
+                      "command": [
+                        "sleep",
+                        "infinity"
+                      ],
+                      "workingDir": "/home/sandbox",
+                      "env": [
+                        {
+                          "name": "HOME",
+                          "value": "/home/sandbox"
+                        }
+                      ],
+                      "volumeMounts": [
+                        {
+                          "name": "home",
+                          "mountPath": "/home/sandbox"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "terminal": {
+            "command": [
+              "/bin/sh",
+              "-i"
+            ]
+          },
+          "helpers": [],
+          "ui": {
+            "resources": {
+              "default": {
+                "requests": {
+                  "cpu": "500m",
+                  "memory": "1Gi"
+                },
+                "limits": {
+                  "cpu": "2",
+                  "memory": "4Gi"
+                },
+                "storage": "20Gi"
+              },
+              "minimum": {
+                "requests": {
+                  "cpu": "100m",
+                  "memory": "256Mi"
+                },
+                "limits": {
+                  "cpu": "100m",
+                  "memory": "256Mi"
+                },
+                "storage": "1Gi"
+              },
+              "maximum": {
+                "requests": {
+                  "cpu": "2",
+                  "memory": "4Gi"
+                },
+                "limits": {
+                  "cpu": "2",
+                  "memory": "4Gi"
+                },
+                "storage": "50Gi"
+              }
+            }
+          }
+        }
+      ],
+      "minItems": 1,
+      "maxItems": 32
+    },
+    {
+      "path": "defaultProfile",
+      "type": "string",
+      "default": "engineering",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$"
+    },
+    {
+      "path": "settings.maxSandboxesPerUser",
+      "type": "integer",
+      "default": 0,
+      "minimum": 0
+    },
+    {
+      "path": "settings.terminalIoWorkers",
+      "type": "integer",
+      "default": 32,
+      "minimum": 1
+    },
+    {
+      "path": "settings.reconcileIntervalSeconds",
+      "type": "integer",
+      "default": 30,
+      "minimum": 0
+    },
+    {
+      "path": "settings.operationLeaseSeconds",
+      "type": "integer",
+      "default": 120,
+      "minimum": 30,
+      "maximum": 600
+    },
+    {
+      "path": "settings.openShell.endpoint",
+      "type": "string",
+      "default": "",
+      "pattern": "^$|^https://[^/]+/?$"
+    },
+    {
+      "path": "settings.openShell.gatewayId",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "path": "settings.openShell.gatewayServiceAccount",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "path": "settings.openShell.sandboxServiceAccount",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "path": "settings.openShell.clientSecret",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "path": "settings.openShell.storageGiB",
+      "type": "integer",
+      "default": 20,
+      "minimum": 1
+    },
+    {
+      "path": "settings.openShell.supervisorResources.requests.cpu",
+      "type": "value"
+    },
+    {
+      "path": "settings.openShell.supervisorResources.requests.memory",
+      "type": "value"
+    },
+    {
+      "path": "settings.openShell.supervisorResources.limits.cpu",
+      "type": "value"
+    },
+    {
+      "path": "settings.openShell.supervisorResources.limits.memory",
+      "type": "value"
+    },
+    {
+      "path": "settings.openShell.namespaceLabel",
+      "type": "string",
+      "default": "sandbox.caipe.io/openshell"
+    },
+    {
+      "path": "settings.openShell.gatewayPodSelector",
+      "type": "object",
+      "default": {
+        "app.kubernetes.io/name": "openshell"
+      }
+    },
+    {
+      "path": "settings.origin",
+      "type": "string",
+      "default": "https://sandbox.example.com"
+    },
+    {
+      "path": "settings.namespacePrefix",
+      "type": "string",
+      "default": "agent"
+    },
+    {
+      "path": "settings.runtimeClass",
+      "type": "string",
+      "default": "",
+      "pattern": "^$|^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+    },
+    {
+      "path": "settings.allowedRuntimeClasses",
+      "type": "NoneType",
+      "default": null
+    },
+    {
+      "path": "settings.runnerServiceAccount",
+      "type": "string",
+      "default": "sandbox-runner"
+    },
+    {
+      "path": "settings.runnerImagePullSecrets",
+      "type": "array",
+      "default": []
+    },
+    {
+      "path": "settings.sandboxSecurityContext.runAsUser",
+      "type": "integer",
+      "default": 1000,
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    {
+      "path": "settings.sandboxSecurityContext.runAsGroup",
+      "type": "integer",
+      "default": 1000,
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    {
+      "path": "settings.sandboxSecurityContext.fsGroup",
+      "type": "integer",
+      "default": 1000,
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    {
+      "path": "settings.storageClass",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "path": "settings.basePath",
+      "type": "string",
+      "default": "/agent-sandbox-portal"
+    },
+    {
+      "path": "resources.requests.cpu",
+      "type": "str",
+      "default": "100m"
+    },
+    {
+      "path": "resources.requests.memory",
+      "type": "str",
+      "default": "128Mi"
+    },
+    {
+      "path": "resources.limits.cpu",
+      "type": "str",
+      "default": "1"
+    },
+    {
+      "path": "resources.limits.memory",
+      "type": "str",
+      "default": "512Mi"
+    },
+    {
+      "path": "ingress.enabled",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "path": "ingress.className",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "ingress.host",
+      "type": "str",
+      "default": "sandbox.example.com"
+    },
+    {
+      "path": "ingress.tlsSecretName",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "ingress.annotations",
+      "type": "dict",
+      "default": {}
+    },
+    {
+      "path": "namespacePolicy.labels",
+      "type": "dict",
+      "default": {}
+    },
+    {
+      "path": "namespacePolicy.deleteWhenEmpty",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "path": "namespacePolicy.podSecurityVersion",
+      "type": "str",
+      "default": "latest"
+    },
+    {
+      "path": "namespacePolicy.baselineNetworkPolicy",
+      "type": "boolean",
+      "default": false
+    },
+    {
+      "path": "namespacePolicy.publicHttpsEgress",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "path": "namespacePolicy.quota",
+      "type": "dict",
+      "default": {}
+    },
+    {
+      "path": "namespacePolicy.extraEgress",
+      "type": "list",
+      "default": []
+    },
+    {
+      "path": "resourcePolicy.defaults.cpu_request_millicores",
+      "type": "int",
+      "default": 500
+    },
+    {
+      "path": "resourcePolicy.defaults.cpu_limit_millicores",
+      "type": "int",
+      "default": 2000
+    },
+    {
+      "path": "resourcePolicy.defaults.memory_request_mib",
+      "type": "int",
+      "default": 1024
+    },
+    {
+      "path": "resourcePolicy.defaults.memory_limit_mib",
+      "type": "int",
+      "default": 4096
+    },
+    {
+      "path": "resourcePolicy.defaults.workspace_gib",
+      "type": "int",
+      "default": 20
+    },
+    {
+      "path": "resourcePolicy.cpu_millicores.min",
+      "type": "int",
+      "default": 100
+    },
+    {
+      "path": "resourcePolicy.cpu_millicores.max",
+      "type": "int",
+      "default": 4000
+    },
+    {
+      "path": "resourcePolicy.memory_mib.min",
+      "type": "int",
+      "default": 256
+    },
+    {
+      "path": "resourcePolicy.memory_mib.max",
+      "type": "int",
+      "default": 8192
+    },
+    {
+      "path": "resourcePolicy.workspace_gib.min",
+      "type": "int",
+      "default": 1
+    },
+    {
+      "path": "resourcePolicy.workspace_gib.max",
+      "type": "int",
+      "default": 200
+    },
+    {
+      "path": "auth.adminEmails",
+      "type": "list",
+      "default": []
+    },
+    {
+      "path": "auth.mode",
+      "type": "str",
+      "default": "oidc"
+    },
+    {
+      "path": "auth.omnigentUrl",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "auth.existingSecret",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "auth.clientSecretKey",
+      "type": "str",
+      "default": "client-secret"
+    },
+    {
+      "path": "auth.sessionSecretKey",
+      "type": "str",
+      "default": "session-secret"
+    },
+    {
+      "path": "auth.oidc.issuer",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "auth.oidc.client_id",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "auth.oidc.scopes",
+      "type": "str",
+      "default": "openid email profile groups"
+    },
+    {
+      "path": "auth.oidc.email_claim",
+      "type": "str",
+      "default": "email"
+    },
+    {
+      "path": "auth.oidc.groups_claim",
+      "type": "str",
+      "default": "groups"
+    },
+    {
+      "path": "auth.oidc.require_verified_email",
+      "type": "bool",
+      "default": true
+    },
+    {
+      "path": "auth.oidc.use_userinfo",
+      "type": "bool",
+      "default": false
+    },
+    {
+      "path": "auth.oidc.allowed_email_domains",
+      "type": "list",
+      "default": []
+    },
+    {
+      "path": "auth.oidc.allowed_groups",
+      "type": "list",
+      "default": []
+    },
+    {
+      "path": "auth.oidc.role_groups",
+      "type": "dict",
+      "default": {}
+    },
+    {
+      "path": "auth.oidc.default_role",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "auth.oidc.session_seconds",
+      "type": "int",
+      "default": 3600
+    }
+  ],
+  "environment": [
+    {
+      "path": "PORTAL_DATABASE_URL",
+      "type": "str",
+      "default": "sqlite:////var/lib/portal/metadata.db"
+    },
+    {
+      "path": "PORTAL_DATABASE_BACKEND",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_OPERATION_LEASE_SECONDS",
+      "type": "int",
+      "default": 120
+    },
+    {
+      "path": "PORTAL_TERMINAL_IO_WORKERS",
+      "type": "int",
+      "default": 32
+    },
+    {
+      "path": "PORTAL_RECONCILE_INTERVAL_SECONDS",
+      "type": "int",
+      "default": 30
+    },
+    {
+      "path": "PORTAL_MAX_SANDBOXES_PER_USER",
+      "type": "int",
+      "default": 0
+    },
+    {
+      "path": "PORTAL_DRAIN_FILE",
+      "type": "str",
+      "default": "/tmp/portal-drain"
+    },
+    {
+      "path": "PORTAL_DRAIN_SECONDS",
+      "type": "int",
+      "default": 180
+    },
+    {
+      "path": "PORTAL_DRAIN_PROPAGATION_SECONDS",
+      "type": "int",
+      "default": 10
+    },
+    {
+      "path": "PORTAL_ORIGIN",
+      "type": "str",
+      "default": "http://127.0.0.1:4193"
+    },
+    {
+      "path": "PORTAL_AUTH_OMNIGENT_URL",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_NAMESPACE_PREFIX",
+      "type": "str",
+      "default": "agent"
+    },
+    {
+      "path": "PORTAL_NAMESPACE",
+      "type": "str",
+      "default": "{\"strategy\":\"perSandbox\",\"allowedStrategies\":[\"perSandbox\",\"perUser\"],\"labels\":{},\"annotations\":{}}"
+    },
+    {
+      "path": "PORTAL_PROFILES",
+      "type": "str",
+      "default": "[]"
+    },
+    {
+      "path": "PORTAL_PROFILES_FILE",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_DEFAULT_PROFILE",
+      "type": "str",
+      "default": "engineering"
+    },
+    {
+      "path": "PORTAL_OPENSHELL_ENDPOINT",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_OPENSHELL_GATEWAY_ID",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_OPENSHELL_GATEWAY_SERVICE_ACCOUNT",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_OPENSHELL_RUNNER_SERVICE_ACCOUNT",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_OPENSHELL_STORAGE_GIB",
+      "type": "int",
+      "default": 20
+    },
+    {
+      "path": "PORTAL_OPENSHELL_GATEWAY_POD_SELECTOR",
+      "type": "str",
+      "default": "{\"app.kubernetes.io/name\":\"openshell\"}"
+    },
+    {
+      "path": "PORTAL_OPENSHELL_NAMESPACE_LABEL",
+      "type": "str",
+      "default": "sandbox.caipe.io/openshell"
+    },
+    {
+      "path": "PORTAL_OPENSHELL_SUPERVISOR_RESOURCES",
+      "type": "str",
+      "default": "{}"
+    },
+    {
+      "path": "PORTAL_PORTAL_NAMESPACE",
+      "type": "str",
+      "default": "sandbox-system"
+    },
+    {
+      "path": "PORTAL_PORTAL_SERVICE_ACCOUNT",
+      "type": "str",
+      "default": "agent-sandbox-portal"
+    },
+    {
+      "path": "PORTAL_NAMESPACE_ACCESS_ROLE",
+      "type": "str",
+      "default": "agent-sandbox-portal-access"
+    },
+    {
+      "path": "PORTAL_NAMESPACE_POLICY",
+      "type": "str",
+      "default": "{\"podSecurityVersion\":\"latest\",\"baselineNetworkPolicy\":false,\"quota\":{},\"extraEgress\":[],\"deleteWhenEmpty\":true}"
+    },
+    {
+      "path": "PORTAL_RUNTIME_CLASS",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_ALLOWED_RUNTIME_CLASSES",
+      "type": "str",
+      "default": "null"
+    },
+    {
+      "path": "PORTAL_RUNNER_SERVICE_ACCOUNT",
+      "type": "str",
+      "default": "sandbox-runner"
+    },
+    {
+      "path": "PORTAL_RUNNER_IMAGE_PULL_SECRETS",
+      "type": "str",
+      "default": "[]"
+    },
+    {
+      "path": "PORTAL_SANDBOX_SECURITY_CONTEXT",
+      "type": "str",
+      "default": "{\"runAsUser\":1000,\"runAsGroup\":1000,\"fsGroup\":1000}"
+    },
+    {
+      "path": "PORTAL_STORAGE_CLASS",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_RESOURCE_POLICY",
+      "type": "str",
+      "default": "{\"defaults\": {\"cpu_request_millicores\": 500, \"cpu_limit_millicores\": 2000, \"memory_request_mib\": 1024, \"memory_limit_mib\": 4096, \"workspace_gib\": 20}, \"cpu_millicores\": {\"min\": 100, \"max\": 4000}, \"memory_mib\": {\"min\": 256, \"max\": 8192}, \"workspace_gib\": {\"min\": 1, \"max\": 200}}"
+    },
+    {
+      "path": "PORTAL_AUTH_MODE",
+      "type": "str",
+      "default": "oidc"
+    },
+    {
+      "path": "PORTAL_ADMIN_EMAILS",
+      "type": "str",
+      "default": "[]"
+    },
+    {
+      "path": "PORTAL_OIDC_POLICY",
+      "type": "str",
+      "default": "{}"
+    },
+    {
+      "path": "PORTAL_OIDC_CLIENT_SECRET",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_SESSION_SECRET",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_BASE_PATH",
+      "type": "str",
+      "default": "/agent-sandbox-portal"
+    },
+    {
+      "path": "OTEL_SERVICE_NAME",
+      "type": "process environment",
+      "default": "caipe-sandbox-portal"
+    },
+    {
+      "path": "OTEL_EXPORTER_OTLP_ENDPOINT",
+      "type": "process environment"
+    },
+    {
+      "path": "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+      "type": "process environment"
+    },
+    {
+      "path": "OTEL_SDK_DISABLED",
+      "type": "process environment",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_POD_UID",
+      "type": "chart wiring"
+    },
+    {
+      "path": "OTEL_RESOURCE_ATTRIBUTES",
+      "type": "chart wiring"
+    },
+    {
+      "path": "OTEL_EXPORTER_OTLP_PROTOCOL",
+      "type": "chart wiring"
+    },
+    {
+      "path": "OTEL_EXPORTER_OTLP_TIMEOUT",
+      "type": "chart wiring"
+    },
+    {
+      "path": "OTEL_TRACES_SAMPLER",
+      "type": "chart wiring"
+    },
+    {
+      "path": "OTEL_TRACES_SAMPLER_ARG",
+      "type": "chart wiring"
+    },
+    {
+      "path": "WEB_CONCURRENCY",
+      "type": "chart wiring"
+    },
+    {
+      "path": "UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN",
+      "type": "chart wiring"
+    }
+  ],
+  "state": [
+    {
+      "path": "record.manifest",
+      "type": "object",
+      "required": true
+    },
+    {
+      "path": "record.requested_mode",
+      "type": "string",
+      "required": false,
+      "default": "running",
+      "enum": [
+        "running",
+        "suspended"
+      ]
+    },
+    {
+      "path": "record.id",
+      "type": "string",
+      "required": true
+    },
+    {
+      "path": "record.name",
+      "type": "string",
+      "required": true,
+      "pattern": "^[a-z][a-z0-9-]{0,15}$"
+    },
+    {
+      "path": "record.owner",
+      "type": "string",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 254
+    },
+    {
+      "path": "record.title",
+      "type": "string",
+      "required": false,
+      "default": "My sandbox",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    {
+      "path": "record.provider",
+      "type": "string",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 40
+    },
+    {
+      "path": "record.provider_instance",
+      "type": "string",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 254
+    },
+    {
+      "path": "record.profile_snapshot",
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": false,
+      "default": null
+    },
+    {
+      "path": "record.scope",
+      "type": "string",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 512
+    },
+    {
+      "path": "record.scope_owner",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "maxLength": 254
+    },
+    {
+      "path": "record.resource_usage",
+      "type": "object",
+      "required": false
+    },
+    {
+      "path": "record.binding.key",
+      "type": "string",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 512
+    },
+    {
+      "path": "record.binding.reference",
+      "type": "object",
+      "required": true
+    },
+    {
+      "path": "record.revision",
+      "type": "integer",
+      "required": true
+    },
+    {
+      "path": "record.created_at",
+      "type": "string",
+      "required": true
+    },
+    {
+      "path": "record.updated_at",
+      "type": "string",
+      "required": true
+    },
+    {
+      "path": "record.grants",
+      "type": "object",
+      "required": false
+    },
+    {
+      "path": "record.control",
+      "type": "object",
+      "required": false
+    },
+    {
+      "path": "record.operation.kind",
+      "type": "string",
+      "required": true,
+      "enum": [
+        "create",
+        "configure",
+        "mode",
+        "delete",
+        "integration"
+      ]
+    },
+    {
+      "path": "record.operation.request_id",
+      "type": "string",
+      "required": true
+    },
+    {
+      "path": "record.operation.actor",
+      "type": "string",
+      "required": true
+    },
+    {
+      "path": "record.operation.state",
+      "type": "string",
+      "required": false,
+      "default": "pending",
+      "enum": [
+        "pending",
+        "needs_attention"
+      ]
+    },
+    {
+      "path": "record.operation.parameters",
+      "type": "object",
+      "required": false
+    },
+    {
+      "path": "record.deleted_at",
+      "type": [
+        "string",
+        "null"
+      ],
+      "required": false,
+      "default": null
+    },
+    {
+      "path": "admin.creation_disabled",
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    {
+      "path": "admin.sandboxes_disabled",
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    {
+      "path": "admin.reason",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "maxLength": 500
+    },
+    {
+      "path": "admin.announcement.title",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "maxLength": 120
+    },
+    {
+      "path": "admin.announcement.body",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "maxLength": 8000
+    },
+    {
+      "path": "admin.announcement.author",
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    {
+      "path": "admin.announcement.updated_at",
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    {
+      "path": "admin.users.*.creation_disabled",
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    {
+      "path": "admin.users.*.sandboxes_disabled",
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    {
+      "path": "admin.users.*.reason",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "maxLength": 500
+    },
+    {
+      "path": "admin.namespaces.*.creation_disabled",
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    {
+      "path": "admin.namespaces.*.network_policy",
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": false,
+      "default": null
+    },
+    {
+      "path": "admin.updated_by",
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    {
+      "path": "admin.updated_at",
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    {
+      "path": "sandboxControl.disabled",
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    {
+      "path": "sandboxControl.reason",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "maxLength": 500
+    },
+    {
+      "path": "sandboxControl.notice.title",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "maxLength": 120
+    },
+    {
+      "path": "sandboxControl.notice.body",
+      "type": "string",
+      "required": false,
+      "default": "",
+      "maxLength": 8000
+    },
+    {
+      "path": "sandboxControl.notice.author",
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    {
+      "path": "sandboxControl.notice.updated_at",
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    {
+      "path": "sandboxControl.updated_by",
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    {
+      "path": "sandboxControl.updated_at",
+      "type": "string",
+      "required": false,
+      "default": ""
+    },
+    {
+      "path": "namespaceControl.creation_disabled",
+      "type": "boolean",
+      "required": false,
+      "default": false
+    },
+    {
+      "path": "namespaceControl.network_policy",
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": false,
+      "default": null
+    },
+    {
+      "path": "lease.name",
+      "type": "string",
+      "required": true,
+      "minLength": 1,
+      "maxLength": 160
+    },
+    {
+      "path": "lease.token",
+      "type": "string",
+      "required": true
+    },
+    {
+      "path": "lease.expires_at",
+      "type": "string",
+      "required": true
+    },
+    {
+      "path": "record.profile_snapshot.schemaVersion",
+      "type": "int"
+    },
+    {
+      "path": "record.profile_snapshot.id",
+      "type": "str"
+    },
+    {
+      "path": "record.profile_snapshot.revision",
+      "type": "str"
+    },
+    {
+      "path": "record.profile_snapshot.definition",
+      "type": "dict"
+    },
+    {
+      "path": "record.profile_snapshot.namespace",
+      "type": "str"
+    },
+    {
+      "path": "record.profile_snapshot.namespaceStrategy",
+      "type": "str"
+    },
+    {
+      "path": "record.profile_snapshot.namespaceOwner",
+      "type": "str"
+    },
+    {
+      "path": "record.profile_snapshot.namespaceConfiguration",
+      "type": "dict"
+    },
+    {
+      "path": "record.profile_snapshot.resources",
+      "type": "dict"
+    },
+    {
+      "path": "record.profile_snapshot.spec",
+      "type": "dict"
+    },
+    {
+      "path": "record.profile_snapshot.integration_configuration",
+      "type": "object"
+    },
+    {
+      "path": "native.metadata.uid",
+      "type": "observed",
+      "required": false
+    },
+    {
+      "path": "native.metadata.resourceVersion",
+      "type": "observed",
+      "required": false
+    },
+    {
+      "path": "native.namespace.uid",
+      "type": "observed",
+      "required": false
+    },
+    {
+      "path": "native.openshell.gateway_id",
+      "type": "observed",
+      "required": false
+    },
+    {
+      "path": "native.openshell.sandbox_id",
+      "type": "observed",
+      "required": false
+    },
+    {
+      "path": "native.openshell.policy_status.revision.version",
+      "type": "observed",
+      "required": false
+    },
+    {
+      "path": "native.openshell.policy_status.active_version",
+      "type": "observed",
+      "required": false
+    },
+    {
+      "path": "native.status",
+      "type": "observed",
+      "required": false
+    },
+    {
+      "path": "correlation.request_id",
+      "type": "observed",
+      "required": false
+    },
+    {
+      "path": "correlation.trace_id",
+      "type": "observed",
+      "required": false
+    }
+  ],
+  "examples": {
+    "agentSandbox": {
+      "id": "engineering",
+      "title": "Engineering terminal",
+      "description": "A persistent workspace with profile-defined tools and helpers.",
+      "agentSandbox": {
+        "spec": {
+          "podTemplate": {
+            "spec": {
+              "containers": [
+                {
+                  "name": "host",
+                  "image": "python:3.12-slim@sha256:cb33f7f771ecec2ef1225cf39b159591a040391bd73e4c01f00fdfc4c47611d2",
+                  "command": [
+                    "sleep",
+                    "infinity"
+                  ],
+                  "workingDir": "/home/sandbox",
+                  "env": [
+                    {
+                      "name": "HOME",
+                      "value": "/home/sandbox"
+                    }
+                  ],
+                  "volumeMounts": [
+                    {
+                      "name": "home",
+                      "mountPath": "/home/sandbox"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "terminal": {
+        "command": [
+          "/bin/sh",
+          "-i"
+        ]
+      },
+      "helpers": [],
+      "ui": {
+        "resources": {
+          "default": {
+            "requests": {
+              "cpu": "500m",
+              "memory": "1Gi"
+            },
+            "limits": {
+              "cpu": "2",
+              "memory": "4Gi"
+            },
+            "storage": "20Gi"
+          },
+          "minimum": {
+            "requests": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            },
+            "limits": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            },
+            "storage": "1Gi"
+          },
+          "maximum": {
+            "requests": {
+              "cpu": "2",
+              "memory": "4Gi"
+            },
+            "limits": {
+              "cpu": "2",
+              "memory": "4Gi"
+            },
+            "storage": "50Gi"
+          }
+        }
+      }
+    },
+    "openShell": {
+      "id": "protected-engineering",
+      "title": "Protected engineering",
+      "description": "Engineering tools with OpenShell filesystem and network policy.",
+      "openShell": {
+        "spec": {
+          "template": {
+            "image": "example.invalid/agent-sandbox-host@sha256:0000000000000000000000000000000000000000000000000000000000000000",
+            "resources": {
+              "requests": {
+                "cpu": "500m",
+                "memory": "1Gi"
+              },
+              "limits": {
+                "cpu": "2",
+                "memory": "4Gi"
+              }
+            }
+          },
+          "command": [
+            "sandbox-start"
+          ],
+          "environment": {
+            "HOME": "/sandbox"
+          },
+          "policy": {
+            "version": 1,
+            "landlock": {
+              "compatibility": "hard_requirement"
+            },
+            "filesystem": {
+              "include_workdir": true,
+              "read_only": [
+                "/bin",
+                "/usr",
+                "/lib",
+                "/lib64",
+                "/proc",
+                "/dev/urandom",
+                "/app",
+                "/opt",
+                "/etc",
+                "/var/log"
+              ],
+              "read_write": [
+                "/sandbox",
+                "/tmp",
+                "/dev/null"
+              ]
+            },
+            "network_policies": {
+              "github": {
+                "name": "github-readonly",
+                "endpoints": [
+                  {
+                    "host": "api.github.com",
+                    "port": 443,
+                    "protocol": "rest",
+                    "enforcement": "NETWORK_ENFORCEMENT_MODE_ENFORCE",
+                    "access": "NETWORK_ACCESS_PRESET_READ_ONLY"
+                  }
+                ],
+                "binaries": [
+                  {
+                    "path": "/usr/bin/curl"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "terminal": {
+        "command": [
+          "/bin/bash",
+          "-i"
+        ]
+      },
+      "ui": {
+        "resources": {
+          "default": {
+            "requests": {
+              "cpu": "500m",
+              "memory": "1Gi"
+            },
+            "limits": {
+              "cpu": "2",
+              "memory": "4Gi"
+            },
+            "storage": "20Gi"
+          },
+          "minimum": {
+            "requests": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            },
+            "limits": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            },
+            "storage": "20Gi"
+          },
+          "maximum": {
+            "requests": {
+              "cpu": "4",
+              "memory": "8Gi"
+            },
+            "limits": {
+              "cpu": "4",
+              "memory": "8Gi"
+            },
+            "storage": "20Gi"
+          }
+        }
+      }
+    },
+    "native": {
+      "agentSandbox": {
+        "small": {
+          "spec": {
+            "podTemplate": {
+              "spec": {
+                "containers": [
+                  {
+                    "name": "host",
+                    "image": "python:3.12-slim@sha256:cb33f7f771ecec2ef1225cf39b159591a040391bd73e4c01f00fdfc4c47611d2",
+                    "command": [
+                      "sleep",
+                      "infinity"
+                    ],
+                    "workingDir": "/home/sandbox",
+                    "env": [
+                      {
+                        "name": "HOME",
+                        "value": "/home/sandbox"
+                      }
+                    ],
+                    "volumeMounts": [
+                      {
+                        "name": "home",
+                        "mountPath": "/home/sandbox"
+                      }
+                    ],
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "privileged": false,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      }
+                    },
+                    "resources": {
+                      "requests": {
+                        "cpu": "500m",
+                        "memory": "1024Mi",
+                        "ephemeral-storage": "2Gi"
+                      },
+                      "limits": {
+                        "cpu": "2000m",
+                        "memory": "4096Mi",
+                        "ephemeral-storage": "8Gi"
+                      }
+                    }
+                  }
+                ],
+                "runtimeClassName": "kata-qemu",
+                "serviceAccountName": "sandbox-runner",
+                "automountServiceAccountToken": false,
+                "hostNetwork": false,
+                "hostPID": false,
+                "hostIPC": false,
+                "securityContext": {
+                  "runAsUser": 1000,
+                  "runAsGroup": 1000,
+                  "fsGroup": 1000,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "imagePullSecrets": []
+              },
+              "metadata": {
+                "labels": {
+                  "app.kubernetes.io/name": "agent-sandbox-portal",
+                  "sandbox.caipe.io/owner": "fa0714ea4fa4ceb06113b34c740979d0",
+                  "sandbox.caipe.io/owner-email": "engineer-example.com-fa0714ea4f"
+                }
+              }
+            },
+            "operatingMode": "Running",
+            "shutdownPolicy": "Retain",
+            "volumeClaimTemplates": [
+              {
+                "metadata": {
+                  "name": "home"
+                },
+                "spec": {
+                  "accessModes": [
+                    "ReadWriteOnce"
+                  ],
+                  "resources": {
+                    "requests": {
+                      "storage": "20Gi"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "medium": {
+          "spec": {
+            "podTemplate": {
+              "spec": {
+                "containers": [
+                  {
+                    "name": "host",
+                    "image": "python:3.12-slim@sha256:cb33f7f771ecec2ef1225cf39b159591a040391bd73e4c01f00fdfc4c47611d2",
+                    "command": [
+                      "sleep",
+                      "infinity"
+                    ],
+                    "workingDir": "/home/sandbox",
+                    "env": [
+                      {
+                        "name": "HOME",
+                        "value": "/home/sandbox"
+                      }
+                    ],
+                    "volumeMounts": [
+                      {
+                        "name": "home",
+                        "mountPath": "/home/sandbox"
+                      }
+                    ],
+                    "securityContext": {
+                      "allowPrivilegeEscalation": false,
+                      "privileged": false,
+                      "capabilities": {
+                        "drop": [
+                          "ALL"
+                        ]
+                      }
+                    },
+                    "resources": {
+                      "requests": {
+                        "cpu": "1000m",
+                        "memory": "2048Mi",
+                        "ephemeral-storage": "2Gi"
+                      },
+                      "limits": {
+                        "cpu": "2000m",
+                        "memory": "4096Mi",
+                        "ephemeral-storage": "8Gi"
+                      }
+                    }
+                  }
+                ],
+                "runtimeClassName": "kata-qemu",
+                "serviceAccountName": "sandbox-runner",
+                "automountServiceAccountToken": false,
+                "hostNetwork": false,
+                "hostPID": false,
+                "hostIPC": false,
+                "securityContext": {
+                  "runAsUser": 1000,
+                  "runAsGroup": 1000,
+                  "fsGroup": 1000,
+                  "runAsNonRoot": true,
+                  "seccompProfile": {
+                    "type": "RuntimeDefault"
+                  }
+                },
+                "imagePullSecrets": []
+              },
+              "metadata": {
+                "labels": {
+                  "app.kubernetes.io/name": "agent-sandbox-portal",
+                  "sandbox.caipe.io/owner": "fa0714ea4fa4ceb06113b34c740979d0",
+                  "sandbox.caipe.io/owner-email": "engineer-example.com-fa0714ea4f"
+                }
+              }
+            },
+            "operatingMode": "Running",
+            "shutdownPolicy": "Retain",
+            "volumeClaimTemplates": [
+              {
+                "metadata": {
+                  "name": "home"
+                },
+                "spec": {
+                  "accessModes": [
+                    "ReadWriteOnce"
+                  ],
+                  "resources": {
+                    "requests": {
+                      "storage": "20Gi"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "openShell": {
+        "small": {
+          "spec": {
+            "template": {
+              "image": "example.invalid/agent-sandbox-host@sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "resources": {
+                "requests": {
+                  "cpu": "500m",
+                  "memory": "1024Mi",
+                  "ephemeral-storage": "2Gi"
+                },
+                "limits": {
+                  "cpu": "2000m",
+                  "memory": "4096Mi",
+                  "ephemeral-storage": "8Gi"
+                }
+              },
+              "runtime_class_name": "kata-qemu"
+            },
+            "command": [
+              "sandbox-start"
+            ],
+            "environment": {
+              "HOME": "/sandbox"
+            },
+            "policy": {
+              "version": 1,
+              "landlock": {
+                "compatibility": "hard_requirement"
+              },
+              "filesystem": {
+                "include_workdir": true,
+                "read_only": [
+                  "/bin",
+                  "/usr",
+                  "/lib",
+                  "/lib64",
+                  "/proc",
+                  "/dev/urandom",
+                  "/app",
+                  "/opt",
+                  "/etc",
+                  "/var/log"
+                ],
+                "read_write": [
+                  "/sandbox",
+                  "/tmp",
+                  "/dev/null"
+                ]
+              },
+              "network_policies": {
+                "github": {
+                  "name": "github-readonly",
+                  "endpoints": [
+                    {
+                      "host": "api.github.com",
+                      "port": 443,
+                      "protocol": "rest",
+                      "enforcement": "NETWORK_ENFORCEMENT_MODE_ENFORCE",
+                      "access": "NETWORK_ACCESS_PRESET_READ_ONLY"
+                    }
+                  ],
+                  "binaries": [
+                    {
+                      "path": "/usr/bin/curl"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "medium": {
+          "spec": {
+            "template": {
+              "image": "example.invalid/agent-sandbox-host@sha256:0000000000000000000000000000000000000000000000000000000000000000",
+              "resources": {
+                "requests": {
+                  "cpu": "1000m",
+                  "memory": "2048Mi",
+                  "ephemeral-storage": "2Gi"
+                },
+                "limits": {
+                  "cpu": "2000m",
+                  "memory": "4096Mi",
+                  "ephemeral-storage": "8Gi"
+                }
+              },
+              "runtime_class_name": "kata-qemu"
+            },
+            "command": [
+              "sandbox-start"
+            ],
+            "environment": {
+              "HOME": "/sandbox"
+            },
+            "policy": {
+              "version": 1,
+              "landlock": {
+                "compatibility": "hard_requirement"
+              },
+              "filesystem": {
+                "include_workdir": true,
+                "read_only": [
+                  "/bin",
+                  "/usr",
+                  "/lib",
+                  "/lib64",
+                  "/proc",
+                  "/dev/urandom",
+                  "/app",
+                  "/opt",
+                  "/etc",
+                  "/var/log"
+                ],
+                "read_write": [
+                  "/sandbox",
+                  "/tmp",
+                  "/dev/null"
+                ]
+              },
+              "network_policies": {
+                "github": {
+                  "name": "github-readonly",
+                  "endpoints": [
+                    {
+                      "host": "api.github.com",
+                      "port": 443,
+                      "protocol": "rest",
+                      "enforcement": "NETWORK_ENFORCEMENT_MODE_ENFORCE",
+                      "access": "NETWORK_ACCESS_PRESET_READ_ONLY"
+                    }
+                  ],
+                  "binaries": [
+                    {
+                      "path": "/usr/bin/curl"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "platform": {
+      "agentSandbox": {
+        "defaultProfile": "engineering",
+        "settings": {
+          "runtimeClass": "kata-qemu",
+          "allowedRuntimeClasses": [
+            "kata-qemu"
+          ],
+          "runnerServiceAccount": "sandbox-runner",
+          "sandboxSecurityContext": {
+            "runAsUser": 1000,
+            "runAsGroup": 1000,
+            "fsGroup": 1000
+          },
+          "storageClass": ""
+        },
+        "namespace": {
+          "strategy": "perSandbox",
+          "allowedStrategies": [
+            "perSandbox",
+            "perUser"
+          ],
+          "labels": {},
+          "annotations": {}
+        },
+        "resourcePolicy": {
+          "defaults": {
+            "cpu_request_millicores": 500,
+            "cpu_limit_millicores": 2000,
+            "memory_request_mib": 1024,
+            "memory_limit_mib": 4096,
+            "workspace_gib": 20
+          },
+          "cpu_millicores": {
+            "min": 100,
+            "max": 4000
+          },
+          "memory_mib": {
+            "min": 256,
+            "max": 8192
+          },
+          "workspace_gib": {
+            "min": 1,
+            "max": 200
+          }
+        }
+      },
+      "openShell": {
+        "defaultProfile": "protected-engineering",
+        "settings": {
+          "runtimeClass": "kata-qemu",
+          "allowedRuntimeClasses": [
+            "kata-qemu"
+          ],
+          "runnerServiceAccount": "sandbox-runner",
+          "sandboxSecurityContext": {
+            "runAsUser": 1000,
+            "runAsGroup": 1000,
+            "fsGroup": 1000
+          },
+          "storageClass": "",
+          "openShell": {
+            "endpoint": "https://sandbox-openshell.sandbox-system.svc.cluster.local:8080",
+            "gatewayId": "sandbox-openshell",
+            "gatewayServiceAccount": "sandbox-openshell",
+            "sandboxServiceAccount": "sandbox-openshell-sandbox",
+            "clientSecret": "sandbox-openshell-client-tls",
+            "storageGiB": 20,
+            "namespaceLabel": "sandbox.caipe.io/openshell",
+            "supervisorResources": {
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              },
+              "limits": {
+                "cpu": "500m",
+                "memory": "512Mi"
+              }
+            }
+          }
+        },
+        "namespace": {
+          "strategy": "perSandbox",
+          "allowedStrategies": [
+            "perSandbox",
+            "perUser"
+          ],
+          "labels": {},
+          "annotations": {}
+        },
+        "resourcePolicy": {
+          "defaults": {
+            "cpu_request_millicores": 500,
+            "cpu_limit_millicores": 2000,
+            "memory_request_mib": 1024,
+            "memory_limit_mib": 4096,
+            "workspace_gib": 20
+          },
+          "cpu_millicores": {
+            "min": 100,
+            "max": 4000
+          },
+          "memory_mib": {
+            "min": 256,
+            "max": 8192
+          },
+          "workspace_gib": {
+            "min": 1,
+            "max": 200
+          }
+        }
+      }
+    }
+  }
+}

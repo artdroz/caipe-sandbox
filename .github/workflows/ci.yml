@@ -50,6 +50,7 @@ jobs:
         run: |
           uv sync --locked --extra test --no-install-project --no-build
           uv run --locked --no-sync python -m pytest -q
+          uv run --locked --no-sync python ../../docs/scripts/export-configuration-reference.py --check
           uv run --locked --no-sync python -m unittest discover -s ../../scripts/tests
       - name: Check publish version
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
@@ -76,6 +77,9 @@ jobs:
   docs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
         with:
@@ -83,12 +87,41 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v6
         with:
           node-version: "24.22.1"
+      - name: Configure GitHub Pages
+        id: pages
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - name: Test and build documentation
         working-directory: docs
+        env:
+          DOCS_URL: ${{ steps.pages.outputs.origin || 'https://caipe-io.github.io' }}
+          DOCS_BASE_URL: ${{ steps.pages.outputs.origin && format('{0}/', steps.pages.outputs.base_path) || '/caipe-sandbox/' }}
         run: |
           npm ci --ignore-scripts
           npm test
           npm run build
+      - name: Upload documentation site
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: docs/build
+
+  docs-deploy:
+    name: Deploy documentation
+    needs: docs
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
   images:
     name: Images (${{ matrix.arch }})

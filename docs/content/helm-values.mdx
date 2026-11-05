@@ -1,0 +1,24 @@
+---
+title: Helm chart values
+hide_table_of_contents: true
+description: Inputs to the CAIPE Sandbox Helm chart, including checked-in defaults and operator overrides.
+---
+
+import ConfigurationReference from "@site/src/components/configuration/FieldReference";
+
+These are **inputs to the CAIPE Sandbox Helm chart**. Operators set them in
+values files passed to `helm install` or `helm upgrade` to configure the portal,
+profile catalog, authentication, metadata storage and optional integrations.
+
+The defaults shown here come from the repository's **`values.yaml`**, with
+constraints from **`values.schema.json`**. Your deployment values override those
+defaults. This page **does not show the effective values of a running release**.
+Release tooling can also fill image pins in published charts, so compare the
+chart version you actually installed.
+
+Select a setting to see its default and what it controls. Portal Pod resources
+and sandbox resources are separate. Optional subcharts accept additional native
+values defined by their own charts; this reference covers the main chart's
+declared settings.
+
+<ConfigurationReference key="deployment" scope="deployment" />

@@ -30,14 +30,18 @@ The Internet node sits outside the cluster. Follow **Workload connects to Intern
 to see outbound requests and select **Cluster egress** for the policy details.
 This box represents platform networking, not another portal deployment.
 
-Direct Agent Sandbox Pods use namespace NetworkPolicy: cluster DNS and public
-IPv4 HTTPS are allowed by default, with private/link-local ranges excluded.
-Operators can disable that HTTPS grant or add explicit egress rules. The CNI
-must enforce the policy, and the platform must supply routing and any required NAT.
+Direct Agent Sandbox Pods use the operator's cluster networking and policies.
+The portal's additional namespace baseline is **off by default**. When enabled,
+it denies inbound connections and allows cluster DNS plus public IPv4 TCP/443
+unless `publicHttpsEgress` is disabled; selected private/link-local ranges are
+excluded. Operators can add explicit rules. An enforcing CNI, routing and any
+required NAT remain platform prerequisites.
 
 With OpenShell selected, the trusted supervisor checks relayed requests against
-the profile's binary/endpoint policy and opens approved external connections; the protected namespace baseline denies direct
-workload egress. Native boundary transport and external connectivity remain
+the applied binary/endpoint policy and opens approved external connections.
+OpenShell's native outer fence must block direct workload egress. The portal's
+optional deny-all baseline adds another policy when enabled; disabling that
+baseline does not remove the native fence requirement. Native transport and external connectivity remain
 platform prerequisites. The portal does not currently integrate an Envoy egress
 service. Kata isolation does not itself change network permissions. See the
 [OpenShell v0.1.6 network request path](https://docs.nvidia.com/openshell/v0.1.6/about/architecture#how-a-network-request-travels)
@@ -56,9 +60,9 @@ does not preserve process memory.
 - [Code map](/guide/code-map): modules responsible for management, integrations,
   execution and storage.
 - [Security](security.md): authentication and enforcement boundaries.
-- [Metadata and persistence](metadata.md): active database behavior and current limits.
-- [Deployment ownership](deployment.md): platform prerequisites and validation.
-- [Scaling](scaling.md): topics reserved for a later scaling guide.
+- [Database and persistence](metadata.md): active database behavior and current limits.
+- [Deployment checks](deployment.md): platform prerequisites and validation.
+- [Scaling](scaling.md): replica, terminal connection and capacity behavior.
 
 This view describes the reviewed reference implementation, not a live cluster
 or a deployment manifest. Portal code, workload helpers and charts are included in this repository. Operators must install and validate storage,

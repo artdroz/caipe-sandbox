@@ -367,12 +367,16 @@ test("Internet is external and workload egress follows the selected enforcement 
         model.edges.find((edge) => edge.id === "protected-network").to,
         "supervisor",
       );
-      assert.match(egress.body, /deny-all direct-egress/);
+      assert.match(
+        egress.body,
+        /native outer fence must block direct workload egress/,
+      );
     } else {
       assert.deepEqual(model.activeEdges, ["pod-egress", "egress-internet"]);
       assert.ok(!model.edges.some((edge) => edge.id === "supervisor-egress"));
-      assert.match(egress.body, /public IPv4 HTTPS/);
+      assert.match(egress.body, /When enabled.*public IPv4 TCP\/443/);
     }
+    assert.match(egress.body, /off by default/);
     const outbound = model.edges.find((edge) => edge.id === "egress-internet");
     assert.equal(outbound.from, "egress");
     assert.equal(outbound.to, "internet");

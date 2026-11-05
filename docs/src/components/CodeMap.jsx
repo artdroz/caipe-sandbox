@@ -58,11 +58,12 @@ export default function CodeMap() {
         <Link to="/guide/architecture">System architecture ↗</Link>
       </header>
       <p className={styles.mapNote}>
-        Boxes inside <strong>Portal / Controller</strong> are modules in one
-        Python process. Terminal sessions and admin reconciliation use async
-        tasks within that process. Sandbox Provider represents the selected
-        external backend. Database is persisted state: a SQLite file or
-        PostgreSQL service.
+        Boxes inside <strong>Portal API</strong> are modules in one Python
+        process per replica. Terminal I/O uses a bounded thread pool; sessions
+        and maintenance also use async tasks. Sandbox Provider represents the
+        selected external backend. Database is persisted state: a SQLite file or
+        PostgreSQL service.{" "}
+        <Link to="/guide/metadata">Database and persistence →</Link>
       </p>
       <div className={styles.mapPanel}>
         <div
@@ -257,7 +258,7 @@ export default function CodeMap() {
             </ul>
             {selected.terminalWorker && (
               <>
-                <h3>Terminal worker (per session)</h3>
+                <h3>Terminal session tasks</h3>
                 <p className={styles.boundaryNote}>
                   {selected.terminalWorker.summary}
                 </p>
@@ -327,10 +328,10 @@ export default function CodeMap() {
         </div>
       </section>
       <p className={styles.reference}>
-        Paths are relative to the repository root in the reference
-        implementation at <code>e93e685</code>. Boxes represent responsibilities
-        and process boundaries, not one deployment per source file. The portal,
-        workload tools and charts are included in this repository.
+        Paths are relative to this repository root. Boxes represent
+        responsibilities and process boundaries, not one deployment per source
+        file. The portal, workload tools and charts are included in this
+        repository.
       </p>
     </div>
   );

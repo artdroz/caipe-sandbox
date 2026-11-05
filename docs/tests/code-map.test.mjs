@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import {
   modules,
   zones,
@@ -81,7 +82,7 @@ test("portal abstractions remain in one process and native implementations stay 
   const workload = groups.find((group) => group.id === "microvm");
   const gap = workload.x - portal.x - portal.w;
   assert.ok(gap >= 35 && gap <= 60);
-  assert.equal(portal.title, "Portal / Controller");
+  assert.equal(portal.title, "Portal API");
   assert.equal(
     components.find((node) => node.id === "sandbox-provider").zone,
     "native",
@@ -173,11 +174,26 @@ test("worker responsibilities match the reference task lifecycle and database sc
     "revalidate()",
   ]);
   assert.equal(terminal.worker.kind, "connection-tasks");
-  assert.equal(admin.worker.kind, "periodic-task");
-  assert.equal(admin.worker.delaySeconds, 10);
-  assert.equal(admin.worker.condition, "admins or deleteWhenEmpty");
+  assert.equal(admin.worker.kind, "periodic-tasks");
+  assert.deepEqual(admin.worker.loops, [
+    {
+      entry: "reconcile_resources()",
+      intervalSetting: "settings.reconcileIntervalSeconds",
+      defaultSeconds: 30,
+      condition: "non-zero interval",
+    },
+    {
+      entry: "reconcile()",
+      delaySeconds: 10,
+      condition: "admins or deleteWhenEmpty",
+    },
+  ]);
   assert.equal(admin.worker.offload, "asyncio.to_thread");
-  assert.equal(terminal.worker.offload, "asyncio.to_thread");
+  assert.equal(terminal.worker.offload, "TerminalIO.run");
+  assert.equal(
+    terminal.worker.concurrencySetting,
+    "settings.terminalIoWorkers",
+  );
   assert.ok(
     terminal.files.includes("app") && terminal.files.includes("terminal"),
   );
@@ -196,6 +212,8 @@ test("worker responsibilities match the reference task lifecycle and database sc
     "storage",
     "database",
     "sql",
+    "schema",
+    "schemaCommand",
     "migrations",
   ]);
   assert.ok(
@@ -206,6 +224,15 @@ test("worker responsibilities match the reference task lifecycle and database sc
   assert.deepEqual(readCodeMap("?component=runtime-provider"), {
     component: "sandbox-provider",
   });
+});
+
+test("every source path in the code map exists in this checkout", () => {
+  for (const module of Object.values(modules)) {
+    assert.ok(
+      existsSync(new URL(`../../${module.path}`, import.meta.url)),
+      module.path,
+    );
+  }
 });
 
 test("organized connection routes have no crossings between unrelated segments", () => {

@@ -34,8 +34,8 @@ An existing sandbox retains an **applied profile snapshot**. Updating the catalo
 changes what new allocations use; it does not rewrite an existing sandbox’s image,
 commands or helpers.
 
-See [Profiles and configuration](profiles.md) and the
-[Configuration explorer](/guide/configuration).
+See [Profiles](profiles.md) and the
+[worked configuration example](configuration-example.mdx).
 
 ## Sandbox Provider, runtime and tools
 
@@ -72,8 +72,6 @@ The portal relays each terminal connection and periodically rechecks access.
 The actual shell, helper and agent processes run inside the workload. Suspension
 interrupts sessions and stops execution; resuming requires new terminal sessions.
 
-See [Micro VM lifecycle](workspaces.md).
-
 ## State and persistence
 
 Different kinds of state have different owners:
@@ -90,7 +88,7 @@ Persistent storage retains files, not running process memory. Tool login state
 can survive when the tool writes it under the persistent mount; credentials may
 still expire.
 
-See [Metadata and persistence](metadata.md) for the active database scope.
+See [Database and persistence](metadata.md) for the active database scope.
 
 ## Putting the concepts together
 

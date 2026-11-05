@@ -5,7 +5,7 @@ module.exports = {
   title: "CAIPE Sandbox",
   tagline: "Developer micro VMs on Kubernetes.",
   favicon: "img/caipe-sandbox-logo.svg",
-  url: "https://caipe-io.github.io",
+  url: process.env.DOCS_URL || "https://caipe-io.github.io",
   baseUrl: process.env.DOCS_BASE_URL || "/",
   organizationName: "caipe-io",
   projectName: "caipe-sandbox",
@@ -47,13 +47,7 @@ module.exports = {
           label: "Architecture",
           position: "left",
         },
-        {
-          to: "/guide/configuration",
-          label: "Configuration",
-          position: "left",
-        },
         { to: "/guide/code-map", label: "Code map", position: "left" },
-        { to: "/guide/slides", label: "Slides", position: "left" },
         {
           href: "https://github.com/caipe-io/caipe-sandbox",
           label: "GitHub",
@@ -69,15 +63,13 @@ module.exports = {
           items: [
             { label: "Overview", to: "/guide/overview" },
             { label: "Architecture", to: "/guide/architecture" },
-            { label: "Micro VM lifecycle", to: "/guide/workspaces" },
           ],
         },
         {
           title: "Explore",
           items: [
-            { label: "Configuration explorer", to: "/guide/configuration" },
+            { label: "Helm chart values", to: "/guide/helm-values" },
             { label: "Code map", to: "/guide/code-map" },
-            { label: "Presentation", to: "/guide/slides" },
           ],
         },
         {

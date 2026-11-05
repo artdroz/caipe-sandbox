@@ -21,7 +21,31 @@ export const modules = {
   },
   inventory: {
     path: "apps/portal/portal/inventory.py",
-    job: "Shared Sandbox value returned by the native integrations.",
+    job: "Sandbox view combining a saved metadata record with native observations.",
+  },
+  settings: {
+    path: "apps/portal/portal/config.py",
+    job: "Deployment-owned process settings and runtime/security approval.",
+  },
+  namespaces: {
+    path: "apps/portal/portal/namespaces.py",
+    job: "Kubernetes namespace placement, ownership verification and bootstrap.",
+  },
+  coordination: {
+    path: "apps/portal/portal/coordination.py",
+    job: "Renewable database leases and ownership checks for native operations.",
+  },
+  commands: {
+    path: "apps/portal/portal/commands.py",
+    job: "Shared command arguments, helper IDs and sign-in probe definitions.",
+  },
+  telemetry: {
+    path: "apps/portal/portal/telemetry.py",
+    job: "Structured action/request logs and optional OTLP tracing without terminal transcripts.",
+  },
+  drain: {
+    path: "apps/portal/portal/drain.py",
+    job: "Mark the portal as draining and budget shutdown time for active terminals.",
   },
   profiles: {
     path: "apps/portal/portal/profiles.py",
@@ -37,7 +61,19 @@ export const modules = {
   },
   registry: {
     path: "apps/portal/portal/integrations/__init__.py",
-    job: "Select the backend for a profile or retained allocation.",
+    job: "Register backends, integration status/panels and native dispatch for profiles or saved allocations.",
+  },
+  openShellProfile: {
+    path: "apps/portal/portal/integrations/openshell/profile.py",
+    job: "Validate and render the native OpenShell SandboxSpec.",
+  },
+  openShellPolicy: {
+    path: "apps/portal/portal/integrations/openshell/policy.py",
+    job: "Revision-checked native policy edits, admission status and saved overrides.",
+  },
+  networkPolicy: {
+    path: "apps/portal/portal/integrations/kubernetes/policy.py",
+    job: "Administrator-managed namespace egress policy with native UID/version checks.",
   },
   direct: {
     path: "apps/portal/portal/integrations/agent_sandbox/service.py",
@@ -65,7 +101,7 @@ export const modules = {
   },
   helpers: {
     path: "apps/portal/portal/tools.py",
-    job: "Profile helper status and execution.",
+    job: "Bounded helper sign-in probes and a short-lived status cache.",
   },
   workspace: {
     path: "apps/portal/portal/workspace.py",
@@ -83,13 +119,25 @@ export const modules = {
     path: "apps/portal/portal/storage/sql.py",
     job: "SQLite/PostgreSQL storage implementation.",
   },
+  schema: {
+    path: "apps/portal/portal/storage/schema.py",
+    job: "SQLAlchemy table definitions for sandbox intent, grants, controls, requests and leases.",
+  },
+  schemaCommand: {
+    path: "apps/portal/portal/storage/__main__.py",
+    job: "Explicit migrate/check commands for init containers and operators.",
+  },
   migrations: {
     path: "apps/portal/portal/storage/migrations/",
     job: "Explicit, versioned schema migrations.",
   },
   runtime: {
     path: "sandbox-images/common-tools/sandbox/runtime.py",
-    job: "Engineering-image startup, hooks and supervised services.",
+    job: "Startup hooks and supervised services for images that include common tools.",
+  },
+  runtimeConfig: {
+    path: "sandbox-images/common-tools/sandbox/configuration.py",
+    job: "Validate and manage guest startup/service configuration files.",
   },
   chart: {
     path: "charts/caipe-sandbox/",
@@ -115,7 +163,7 @@ export const zones = {
     icon: "browser",
   },
   portal: {
-    label: "Portal / Controller process",
+    label: "Portal API process",
     icon: "portal",
   },
   native: {
@@ -139,8 +187,8 @@ export const groups = [
     y: 25,
     w: 720,
     h: 570,
-    title: "Portal / Controller",
-    subtitle: "One Python process · modules and background tasks",
+    title: "Portal API",
+    subtitle: "One process per replica · modules and background tasks",
   },
   {
     id: "native",
@@ -219,9 +267,9 @@ export const components = [
       "Terminal WebSocket handling and calling the execution bridge.",
     ],
     boundary:
-      "The application routes and authentication helpers run inside the Portal / Controller process.",
+      "Routes, authentication and telemetry run inside each portal API process. Chart deployment uses one application worker per Pod; PostgreSQL-backed replicas are separate Pods.",
     symbols: "create_app() · create_sandbox() · terminal() · terminal_target()",
-    files: ["app", "auth"],
+    files: ["app", "auth", "settings", "telemetry", "drain"],
   },
   {
     id: "store",
@@ -242,9 +290,9 @@ export const components = [
       "Checking sandbox access and returning connection info: sandbox identity, a provider connector and an optional default command.",
     ],
     boundary:
-      "Store runs inside the Portal / Controller process. Store.execution() checks access, then obtains an ExecutionTarget from the provider adapter. That object carries the sandbox identity and connector; the stream opens later when connect() invokes the connector. Inventory, ownership, namespace sharing and desired manifests use the metadata database; native state is observed through adapters.",
+      "Store runs inside the portal API process. Store.execution() checks access, then obtains an ExecutionTarget carrying native identity and a connector; the stream opens later. Metadata reservations, revisions and renewable leases coordinate operations across replicas. Native calls are not part of the database transaction.",
     symbols: "Store.create() · Store.execution() · Integrations.for_profile()",
-    files: ["management", "inventory"],
+    files: ["management", "inventory", "namespaces", "coordination"],
   },
   {
     id: "profiles",
@@ -287,8 +335,16 @@ export const components = [
       "Persisting sandbox manifests, native bindings, namespace grants, operation journals and coordination leases.",
     ],
     boundary:
-      "Controls, the MetadataStore interface and SQLMetadataStore run inside the Portal / Controller process. Database is the backing data store shown below. Sandbox intent, ownership, sharing and applied profiles live in this database; native resources are observed through adapters. The profile catalog comes from deployment configuration.",
-    files: ["controls", "storage", "database", "sql", "migrations"],
+      "Controls, MetadataStore and SQLMetadataStore run inside the portal API process. Schema definitions and Alembic revisions are checked into the repository. The backing database stores saved intent and coordination, not every transient runtime status or workload file. Normal application startup checks the schema; the chart's init container migrates only for Recreate.",
+    files: [
+      "controls",
+      "storage",
+      "database",
+      "sql",
+      "schema",
+      "schemaCommand",
+      "migrations",
+    ],
     symbols: "Controls.read() / save() → MetadataStore → SQLMetadataStore",
   },
   {
@@ -305,18 +361,27 @@ export const components = [
       "Selects the configured sandbox backend and delegates lifecycle and execution operations through its adapter.",
     handles: [
       "Selecting a backend from the profile or retained allocation.",
-      "Delegating provisioning and lifecycle operations to the backend.",
+      "Delegating native lifecycle, supported reconciliation and Network & security panels.",
       "Verifying the native identity and binding the connector used by an ExecutionTarget.",
     ],
     boundary:
       "The adapters are Python modules inside the portal process. The Sandbox Provider box represents the external backend selected by the profile, such as OpenShell or Agent Sandbox.",
     symbols:
       "Integrations.for_profile() · Integration.create() · Integration.execution()",
-    files: ["registry", "direct", "directExec", "protected", "gateway"],
+    files: [
+      "registry",
+      "direct",
+      "directExec",
+      "protected",
+      "gateway",
+      "openShellProfile",
+      "openShellPolicy",
+      "networkPolicy",
+    ],
   },
   {
     id: "execution",
-    title: "Terminal workers (Execution & tools)",
+    title: "Terminal I/O & tools",
     subtitle: "Terminal sessions · commands · helpers · files",
     zone: "portal",
     icon: "terminal",
@@ -333,10 +398,10 @@ export const components = [
       "Caching helper status and probing helpers through a bounded ThreadPoolExecutor (up to eight concurrent probes).",
     ],
     boundary:
-      "All of this code runs inside the Portal / Controller process. Each terminal connection has its own async session tasks; the shell or helper command runs inside the workload Pod/micro VM.",
+      "Code runs in the portal API process, not separate worker Pods. Each terminal has async tasks; blocking terminal calls use a dedicated bounded TerminalIO thread pool, separate from management offloads. Actual commands run in the workload.",
     symbols:
       "ExecutionTarget · connect() · terminal() · attach_exec() · ToolStatus.status()",
-    files: ["app", "terminal", "execution", "helpers", "workspace"],
+    files: ["app", "terminal", "execution", "helpers", "workspace", "commands"],
     terminalWorker: {
       summary:
         "Runs the input, output and access-revalidation tasks for each authorized terminal WebSocket connection.",
@@ -348,13 +413,14 @@ export const components = [
         "Cancelling sibling tasks and closing the connection on completion, disconnect or failure.",
       ],
       boundary:
-        "This is a task group inside the Portal / Controller process, created for each terminal connection. It is not a separately deployed worker. Blocking native operations are offloaded with asyncio.to_thread; attach_exec also closes connections that finish after the attachment timeout.",
+        "Per-connection asyncio tasks run inside each portal process. Attach, I/O and resize calls use TerminalIO.run() and its semaphore/bounded ThreadPoolExecutor (settings.terminalIoWorkers, default 32). attach_exec closes late connections after timeout. Management calls keep their own asyncio.to_thread path.",
       symbols: "terminal() → output() / input() / revalidate() · attach_exec()",
       worker: {
         kind: "connection-tasks",
         entry: "terminal()",
         tasks: ["output()", "input()", "revalidate()"],
-        offload: "asyncio.to_thread",
+        offload: "TerminalIO.run",
+        concurrencySetting: "settings.terminalIoWorkers",
       },
       files: ["app", "terminal", "execution"],
     },
@@ -370,14 +436,14 @@ export const components = [
     w: 200,
     h: 95,
     summary:
-      "The selected external sandbox backend provisions native workloads, owns lifecycle operations and supplies an execution transport.",
+      "Represents the selected native stack, rather than a single service: Kubernetes API/controller for direct Agent Sandbox, or OpenShell gateway/supervisor and its compute dependencies.",
     handles: [
       "Creating, finding, updating and deleting native sandbox allocations.",
-      "Retaining native ownership, sharing and applied profile information.",
-      "Connecting execution to the workload using the backend’s transport.",
+      "Maintaining native objects and backend-owned state. Portal ownership, sharing and applied profile snapshots remain in the portal database.",
+      "Direct terminals use Kubernetes exec; OpenShell terminals use its authenticated gateway/supervisor path.",
     ],
     boundary:
-      "One provider abstraction is shown here. A profile selects the concrete backend. Provider services are outside the portal Python process; their portal-side adapters are inside it.",
+      "The box summarizes a backend boundary, not one Pod or daemon. Agent Sandbox's controller manages resources; direct exec goes through the Kubernetes API. OpenShell supplies its own attachment path without direct-exec fallback. All portal-side adapters stay inside the portal process.",
     files: [],
     external:
       "OpenShell and Agent Sandbox are example implementations. Their native services and Kubernetes dependencies are owned outside this portal application.",
@@ -393,16 +459,16 @@ export const components = [
     w: 210,
     h: 90,
     summary:
-      "Bootstraps the engineering image using the applied profile, persistent HOME and configured startup hooks/services.",
+      "Bootstraps images that include common tools, using persistent HOME and configured startup hooks/services. Other images can use a different entry point.",
     handles: [
       "Image build contents and the sandbox-start entry point.",
-      "Profile-owned startup hooks and supervised service configuration.",
-      "Starting the services enabled by the applied profile.",
+      "Image-provided initial setup and guest-configured startup hooks/services.",
+      "Starting enabled services from the workload's persisted configuration.",
     ],
     boundary:
       "Runs inside the workload container. Other approved images can have different entry points; not every profile starts these services.",
     symbols: "sandbox-start → sandbox/runtime.py → supervisord",
-    files: ["runtime", "images"],
+    files: ["runtime", "runtimeConfig", "images"],
   },
   {
     id: "tools",
@@ -429,8 +495,8 @@ export const components = [
   },
   {
     id: "admin-worker",
-    title: "Admin worker",
-    subtitle: "Periodic reconciliation task",
+    title: "Maintenance tasks",
+    subtitle: "Configuration · controls · cleanup",
     zone: "portal",
     icon: "controller",
     x: 225,
@@ -438,23 +504,34 @@ export const components = [
     w: 200,
     h: 90,
     summary:
-      "Reconciles saved manifests, retries administrative enforcement and cleans up eligible empty namespaces through Store.",
+      "Runs configuration reconciliation and separate administrative/namespace maintenance loops through Store.",
     handles: [
-      "Starting when administrators are configured or namespacePolicy.deleteWhenEmpty is enabled.",
+      "Checking supported native saved intent at settings.reconcileIntervalSeconds (default 30; 0 disables it), with database-coordinated claims across replicas.",
       "Reconciling persisted access restrictions into native sandbox suspension when administrators are configured.",
-      "Running namespace cleanup, logging failures and retrying after a ten-second delay.",
+      "Running the separate controls/namespace-cleanup loop when admins or deleteWhenEmpty are configured, with a ten-second delay.",
       "Cancelling the background task during application shutdown.",
     ],
     boundary:
-      "The lifespan hook starts one conditional asyncio reconciliation loop inside the portal process. It offloads blocking Store operations with asyncio.to_thread. An admin control save also attempts reconciliation immediately; the loop retries afterward. The chart sets WEB_CONCURRENCY=1.",
+      "Lifespan starts distinct asyncio loops in each portal process; blocking maintenance work uses asyncio.to_thread. Shared leases prevent concurrent ownership of the same reconciliation work. Automatic configuration sync currently supports direct Agent Sandbox; OpenShell exposes native drift/policy operations without a general reconcile method.",
     symbols:
-      "lifespan() → reconcile() · Store.reconcile_controls() · Store.cleanup_namespaces()",
-    files: ["app", "management", "chart"],
+      "lifespan() → reconcile_resources() / reconcile() → Store + database claims",
+    files: ["app", "management", "coordination", "chart"],
     worker: {
-      kind: "periodic-task",
-      entry: "lifespan() → reconcile()",
-      delaySeconds: 10,
-      condition: "admins or deleteWhenEmpty",
+      kind: "periodic-tasks",
+      entry: "lifespan()",
+      loops: [
+        {
+          entry: "reconcile_resources()",
+          intervalSetting: "settings.reconcileIntervalSeconds",
+          defaultSeconds: 30,
+          condition: "non-zero interval",
+        },
+        {
+          entry: "reconcile()",
+          delaySeconds: 10,
+          condition: "admins or deleteWhenEmpty",
+        },
+      ],
       offload: "asyncio.to_thread",
     },
   },
@@ -478,7 +555,7 @@ export const components = [
     boundary:
       "This box represents stored data, not another portal worker. SQLite is a file mounted into the portal Pod; PostgreSQL is a separately provisioned database service. The SQL adapter code runs inside the portal process. Sandbox inventory and sharing use this database; the offered profile catalog remains deployment configuration.",
     symbols:
-      "DatabaseSettings.engine() · SQLMetadataStore.get_controls() · save_controls()",
+      "DatabaseSettings.engine() · SQLMetadataStore.reserve_create() · confirm_binding() · check_schema()",
     files: [],
     sourceHeading: "Backing store",
     external:
