@@ -52,7 +52,7 @@ policies in every existing namespace.
 
 Human sign-in, cluster identity and tool sign-in are different identities:
 
-- **Human:** OIDC claims establish the email identity. Viewer/user roles can be
+- **Human:** OIDC claims, or a verified CAIPE hosted-app JWT, establish the email identity. Viewer/user roles can be
   mapped from approved groups; `auth.adminEmails` separately seeds administrators.
   The API derives the caller rather than trusting a browser-supplied owner.
 - **Portal:** its Kubernetes ServiceAccount manages resources through scoped

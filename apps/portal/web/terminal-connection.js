@@ -1,6 +1,6 @@
 export class TerminalConnection {
-  constructor(url, {status, ready, output, disconnected, error, complete, notice, restart}, {makeSocket = url => new WebSocket(url), timeout = 25000, maxRetries = 3, random = Math.random} = {}) {
-    Object.assign(this, {url, status, ready, output, disconnected, error, complete, notice, restart, makeSocket, timeout, maxRetries, random});
+  constructor(url, {status, ready, output, disconnected, error, complete, notice, restart}, {makeSocket = url => new WebSocket(url), authenticate, timeout = 25000, maxRetries = 3, random = Math.random} = {}) {
+    Object.assign(this, {url, status, ready, output, disconnected, error, complete, notice, restart, makeSocket, authenticate, timeout, maxRetries, random});
     this.helper = new URL(url).searchParams.has("helper");
     if (this.helper) this.maxRetries = 0;
     this.retries = 0;
@@ -10,6 +10,7 @@ export class TerminalConnection {
     if (this.shellReady && this.socket?.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(message));
   }
   stopSocket() {
+    this.attempt = (this.attempt || 0) + 1;
     clearTimeout(this.deadline);
     clearTimeout(this.noticeTimer);
     this.shellReady = false;
@@ -20,6 +21,21 @@ export class TerminalConnection {
   connect() {
     if (this.closed) return;
     this.status(this.retries ? `Reconnecting ${this.retries}/3…` : "Connecting…", false);
+    if (!this.authenticate) { this.openSocket(); return; }
+    const attempt = this.attempt = (this.attempt || 0) + 1;
+    this.deadline = setTimeout(() => {
+      if (this.attempt === attempt) this.fail({code:"authorization-timeout", message:"Terminal authorization timed out. Check your connection and reopen Sandbox from its host application if your session has expired."});
+    }, this.timeout);
+    Promise.resolve().then(() => this.authenticate(this.url)).then(credential => {
+      if (this.closed || this.attempt !== attempt) return;
+      clearTimeout(this.deadline);
+      if (typeof credential !== "string" || !credential) throw new Error("No terminal credential was returned");
+      this.openSocket(credential);
+    }).catch(() => {
+      if (!this.closed && this.attempt === attempt) this.fail({code:"authorization-failed", message:"Terminal authorization failed. Refresh Sandbox in its host application and check that you still have shell access."});
+    });
+  }
+  openSocket(credential) {
     let socket;
     try { socket = this.makeSocket(this.url); }
     catch { this.fail({message: "The browser could not start a WebSocket connection. Check network access and browser security settings.", code: "browser-connection"}); return; }
@@ -30,6 +46,8 @@ export class TerminalConnection {
       if (this.socket === socket) this.fail({code: "client-timeout", message: opened ? "Client timed out waiting for the server to open the sandbox shell (25 seconds)." : "Client timed out establishing the WebSocket connection (25 seconds). Check VPN/network access, DNS and TLS."});
     }, this.timeout);
     socket.onopen = () => {
+      if (this.socket !== socket) return;
+      if (credential) socket.send(JSON.stringify({type:"authenticate", credential}));
       opened = true;
       if (this.socket === socket) this.status(this.retries ? `Reconnecting ${this.retries}/3 · opening shell…` : "Opening shell…", false);
     };

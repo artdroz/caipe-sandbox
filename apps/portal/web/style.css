@@ -648,3 +648,9 @@ button.secondary.action-delete, .ws-process-strip button[data-workspace-action="
 .integration-creation>summary>.icon{width:23px;height:23px;flex:none}
 .integration-creation>summary:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:7px}
 .integration-creation>[data-integration-creation-body]{padding:0 12px 12px}
+
+/* CAIPE supplies the application shell and account controls. */
+body.embedded .topbar>.brand,body.embedded .account{display:none}
+body.embedded .topbar:has(.view-tabs[hidden]){display:none}
+body.embedded .topbar{justify-content:flex-start;margin-bottom:16px}
+body.embedded main{padding-top:16px}

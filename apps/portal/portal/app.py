@@ -8,7 +8,7 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 from uuid import UUID, uuid4
 
 import httpx
@@ -279,10 +279,13 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
             principal.require_user()
         return principal.owner
 
-    def origin(connection):
+    def origin(connection, *, allow_cross_site=False):
         if connection.headers.get("origin") != settings.origin.rstrip("/"):
             raise HTTPException(403, "Request origin is not permitted")
-        if connection.headers.get("sec-fetch-site") == "cross-site":
+        if (
+            not allow_cross_site
+            and connection.headers.get("sec-fetch-site") == "cross-site"
+        ):
             raise HTTPException(403, "Cross-site requests are not permitted")
 
     async def mutate(request):
@@ -345,10 +348,22 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
         return {
             "mode": settings.auth_mode,
             "login_url": auth.login_url,
+            **(
+                {
+                    "terminal_credentials": True,
+                    "terminal_url": settings.terminal_url,
+                    "embedded": True,
+                    "login_message": auth.hosted.signin_message,
+                }
+                if auth.terminal_credentials
+                else {}
+            ),
         }
 
     @app.get(prefix + "/auth/login")
     async def login(request: Request, owner: str | None = None):
+        if not auth.login_url:
+            raise HTTPException(401, auth.hosted.signin_message)
         if not auth.oidc:
             return RedirectResponse(auth.login_url)
         request.session.clear()
@@ -451,10 +466,16 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
 
     @app.get(prefix + "/")
     def page():
+        terminal_origin = urlsplit(settings.terminal_url)
+        connect_source = (
+            (" " + terminal_origin.scheme + "://" + terminal_origin.netloc)
+            if terminal_origin.netloc
+            else ""
+        )
         return FileResponse(
             STATIC / "index.html",
             headers={
-                "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; frame-ancestors 'self'; object-src 'none'; base-uri 'none'",
+                "Content-Security-Policy": f"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'{connect_source}; frame-ancestors 'self'; object-src 'none'; base-uri 'none'",
                 "X-Content-Type-Options": "nosniff",
                 "Cache-Control": "no-store",
             },
@@ -713,6 +734,40 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
                 app.state.store.execution, name, principal.owner, owner
             )
         return principal.owner, target
+
+    def terminal_binding(connection, name, owner, namespace, helper, target):
+        admin = connection.url.path.startswith(prefix + "/api/admin/")
+        return {
+            "name": name,
+            "owner": None if admin else owner,
+            "namespace": namespace,
+            "helper": helper,
+            "admin": admin,
+            "scope": target.scope,
+            "uid": target.sandbox_uid,
+        }
+
+    @app.post(prefix + "/api/admin/sandboxes/{name}/terminal-credentials")
+    @app.post(prefix + "/api/sandboxes/{name}/terminal-credentials")
+    async def terminal_credentials(
+        request: Request,
+        name: str,
+        owner: str | None = None,
+        namespace: str | None = None,
+        helper: str | None = Query(
+            default=None, max_length=40, pattern=r"^[a-z][a-z0-9-]*$"
+        ),
+    ):
+        if not auth.terminal_credentials:
+            raise HTTPException(404)
+        origin(request)
+        drain.require_accepting()
+        _, target = await terminal_target(request, name, owner, namespace)
+        binding = terminal_binding(request, name, owner, namespace, helper, target)
+        return JSONResponse(
+            auth.terminal_credentials.issue(request.state.terminal_identity, binding),
+            headers={"Cache-Control": "no-store"},
+        )
 
     @app.post(prefix + "/api/sandboxes", status_code=201)
     async def create_sandbox(request: Request, body: CreateSandbox | None = None):
@@ -1028,7 +1083,7 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
         ),
     ):
         try:
-            origin(ws)
+            origin(ws, allow_cross_site=bool(auth.terminal_credentials))
         except HTTPException:
             event(
                 "terminal_access_denied",
@@ -1087,9 +1142,15 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
 
         try:
             drain.require_accepting()
+            if auth.terminal_credentials:
+                await auth.terminal_credentials.accept(ws)
             actor, target = await asyncio.wait_for(
                 terminal_target(ws, name, owner, namespace), TERMINAL_CONNECT_SECONDS
             )
+            if auth.terminal_credentials:
+                auth.terminal_credentials.check(
+                    ws, terminal_binding(ws, name, owner, namespace, helper, target)
+                )
             admin_terminal = ws.url.path.startswith(prefix + "/api/admin/")
             if admin_terminal:
                 logger.info(
@@ -1200,6 +1261,11 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
                     )
                     if current_actor != actor:
                         raise HTTPException(403, "Terminal identity changed")
+                    if auth.terminal_credentials:
+                        auth.terminal_credentials.check(
+                            ws,
+                            terminal_binding(ws, name, owner, namespace, helper, _pod),
+                        )
 
             tasks = [
                 asyncio.create_task(output()),

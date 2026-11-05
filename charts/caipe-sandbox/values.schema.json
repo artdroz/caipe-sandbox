@@ -327,6 +327,10 @@
         "origin": {
           "type": "string"
         },
+        "terminalUrl": {
+          "type": "string",
+          "pattern": "^$|^wss?://[^@?# ]+[^/]$"
+        },
         "namespacePrefix": {
           "type": "string"
         },
@@ -529,7 +533,22 @@
       "type": "object"
     },
     "auth": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "mode": {"enum": ["oidc", "omnigent", "caipe"]},
+        "caipe": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "issuer": {"type": "string", "minLength": 1},
+            "app_id": {"type": "string", "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"},
+            "default_role": {"enum": ["user", "viewer"]},
+            "session_seconds": {"type": "integer", "minimum": 60, "maximum": 86400},
+            "existingSecret": {"type": "string"},
+            "verificationKeyKey": {"type": "string", "minLength": 1}
+          }
+        }
+      }
     },
     "imagePullSecrets": {
       "type": "array"

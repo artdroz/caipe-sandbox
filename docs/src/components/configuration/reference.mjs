@@ -187,7 +187,7 @@ export const groups = [
     "platform-service",
     "deployment",
     "Portal URL & ingress",
-    /^(settings\.(origin|basePath)|ingress\.)/,
+    /^(settings\.(origin|basePath|terminalUrl)|ingress\.)/,
     "Platform operator",
     ["helm", "portal", "kubernetes"],
     "Portal URL validation and the installed ingress/TLS controller. Origin/basePath must agree with routing and OIDC callbacks.",
@@ -379,17 +379,30 @@ const notes = {
   "database.persistence.storageClass":
     "StorageClass for the SQLite metadata PVC, separate from settings.storageClass for sandbox home volumes.",
   "auth.mode":
-    "Portal sign-in provider: independent OIDC, or optional Omnigent session validation. This does not select a sandbox backend.",
+    "Portal sign-in provider: independent OIDC, CAIPE hosted-app JWT verification, or optional Omnigent session validation. This does not select a sandbox backend.",
   "auth.adminEmails":
     "Operator-managed administrator seed list. SSO eligibility restrictions still apply; administrator status is not automatically mapped from groups.",
   "auth.omnigentUrl":
     "Omnigent URL used only when auth.mode is omnigent. It is unrelated to an agent tool's own sign-in.",
   "auth.existingSecret":
-    "Existing Secret holding OIDC client and signed-session keys. Store secret contents outside chart values.",
+    "Existing Secret holding Sandbox session-signing keys and, in OIDC mode, the client secret. Store secret contents outside chart values.",
   "auth.clientSecretKey":
     "Key holding the OIDC client secret in auth.existingSecret.",
   "auth.sessionSecretKey":
-    "Key holding the cookie-signing secret in auth.existingSecret. Replicas must share it; rotation can invalidate existing sessions.",
+    "Key holding the Sandbox signing secret: OIDC cookies or CAIPE terminal credentials. Replicas must share it; keep it separate from the CAIPE key.",
+  "auth.caipe.issuer": "Expected CAIPE hosted-app JWT issuer.",
+  "auth.caipe.app_id":
+    "Registered CAIPE app ID; also binds JWT audience to agentic-app:<app_id>.",
+  "auth.caipe.default_role":
+    "Sandbox's user or viewer role for CAIPE-authenticated users; adminEmails remains operator-owned.",
+  "auth.caipe.session_seconds":
+    "Maximum established terminal authorization window in CAIPE mode; HTTP requests and reconnects still require current CAIPE authentication.",
+  "auth.caipe.existingSecret":
+    "Existing Secret containing the CAIPE hosted-app HMAC key. No signing key is stored in chart values.",
+  "auth.caipe.verificationKeyKey":
+    "Key inside auth.caipe.existingSecret matching CAIPE's AGENTIC_APP_TOKEN_SECRET.",
+  "settings.terminalUrl":
+    "Optional direct WSS base URL including the portal prefix; bypasses HTTP-only host proxies for terminal connections. Empty uses the current origin and prefix.",
   "auth.oidc.issuer":
     "OIDC discovery issuer URL, validated by the authentication provider.",
   "auth.oidc.client_id":
@@ -564,6 +577,10 @@ const envValues = {
   AUTH_MODE: "auth.mode",
   ADMIN_EMAILS: "auth.adminEmails",
   OIDC_POLICY: "auth.oidc",
+  CAIPE_POLICY: "auth.caipe (issuer, app_id, default_role and session_seconds)",
+  CAIPE_VERIFICATION_KEY:
+    "Secret reference: auth.caipe.existingSecret / auth.caipe.verificationKeyKey",
+  TERMINAL_URL: "settings.terminalUrl",
   OIDC_CLIENT_SECRET:
     "Secret reference: auth.existingSecret / auth.clientSecretKey",
   SESSION_SECRET:

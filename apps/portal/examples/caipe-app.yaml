@@ -1,0 +1,41 @@
+# Merge into CAIPE's existing agentic-apps catalog. Replace the Service origin.
+agentic_apps:
+  packages:
+    - package_id: sandbox
+      manifest:
+        id: sandbox
+        displayName: Sandbox
+        description: Isolated environments for engineering tools and agents.
+        apiVersion: "1.0"
+        runtime:
+          kind: proxied-next-zone
+          origin: http://sandbox.sandbox-system.svc.cluster.local:8000
+          mountPath: /apps/sandbox
+          preserveMountPath: true
+          chrome: iframe
+        surfaces:
+          showInHub: true
+          showInTopNav: false
+          navOrder: 50
+          homeEligible: true
+          overlays: []
+        access:
+          requiredRoles: [user]
+          tokenScopes: [sandbox:access]
+          policyActions:
+            - {action: "proxy:GET", defaultEffect: allow, requiredScopes: ["sandbox:access"]}
+            - {action: "proxy:HEAD", defaultEffect: allow, requiredScopes: ["sandbox:access"]}
+            - {action: "proxy:POST", defaultEffect: allow, requiredScopes: ["sandbox:access"]}
+            - {action: "proxy:PUT", defaultEffect: allow, requiredScopes: ["sandbox:access"]}
+            - {action: "proxy:PATCH", defaultEffect: allow, requiredScopes: ["sandbox:access"]}
+            - {action: "proxy:DELETE", defaultEffect: allow, requiredScopes: ["sandbox:access"]}
+        health:
+          endpoint: /readyz
+          timeoutMs: 2000
+  installations:
+    - app_id: sandbox
+      package_id: sandbox
+      installed: true
+      enabled: true
+      visible: true
+      runtime_mount_path: /apps/sandbox

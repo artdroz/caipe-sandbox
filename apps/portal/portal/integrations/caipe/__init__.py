@@ -1,0 +1,1 @@
+"""CAIPE hosted-app authentication."""

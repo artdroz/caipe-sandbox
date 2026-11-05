@@ -56,6 +56,9 @@ class Settings:
     oidc_policy: str = "{}"
     oidc_client_secret: str = ""
     session_secret: str = ""
+    caipe_policy: str = "{}"
+    caipe_verification_key: str = field(default="", repr=False)
+    terminal_url: str = ""
     base_path: str = "/agent-sandbox-portal"
 
     @classmethod
@@ -113,8 +116,28 @@ class Settings:
             raise ValueError(
                 "PORTAL_BASE_PATH must be empty or an absolute path without a trailing slash"
             )
-        if not settings.base_path and settings.auth_mode != "oidc":
-            raise ValueError("Serving the portal at / requires independent OIDC login")
+        if not settings.base_path and settings.auth_mode not in {"oidc", "caipe"}:
+            raise ValueError("Serving the portal at / requires OIDC or CAIPE login")
+        if settings.terminal_url:
+            parsed = urlsplit(settings.terminal_url)
+            if (
+                parsed.scheme not in {"ws", "wss"}
+                or not parsed.hostname
+                or not re.fullmatch(r"[a-zA-Z0-9.:-]+", parsed.hostname)
+                or parsed.username is not None
+                or parsed.query
+                or parsed.fragment
+                or settings.terminal_url.endswith("/")
+                or any(c.isspace() for c in settings.terminal_url)
+                or (
+                    parsed.scheme == "ws"
+                    and parsed.hostname not in {"localhost", "127.0.0.1", "::1"}
+                )
+            ):
+                raise ValueError(
+                    "PORTAL_TERMINAL_URL must be an absolute WSS base URL without credentials, query or trailing slash (WS is allowed on loopback)"
+                )
+            parsed.port
         if not re.fullmatch(r"[a-z][a-z0-9-]{0,15}", settings.namespace_prefix):
             raise ValueError("PORTAL_NAMESPACE_PREFIX must be a short DNS label")
         policy = json.loads(settings.namespace_policy)

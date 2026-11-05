@@ -50,6 +50,55 @@ def render(tmp_path, settings, profiles=None, *, release="portal", **overrides):
     )
 
 
+def test_caipe_auth_uses_secret_references_and_preserves_subpaths(tmp_path):
+    result = render(
+        tmp_path,
+        {
+            "basePath": "/apps/sandbox",
+            "origin": "https://caipe.example.com",
+            "terminalUrl": "wss://shell.example.com/apps/sandbox",
+        },
+        auth={
+            "mode": "caipe",
+            "existingSecret": "sandbox-session",
+            "caipe": {"existingSecret": "caipe-signing"},
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    deployment = next(
+        o for o in yaml.safe_load_all(result.stdout) if o and o["kind"] == "Deployment"
+    )
+    env = {
+        e["name"]: e
+        for e in deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    }
+    assert env["PORTAL_CAIPE_VERIFICATION_KEY"]["valueFrom"]["secretKeyRef"] == {
+        "name": "caipe-signing",
+        "key": "signing-key",
+    }
+    assert env["PORTAL_SESSION_SECRET"]["valueFrom"]["secretKeyRef"] == {
+        "name": "sandbox-session",
+        "key": "session-secret",
+    }
+    assert "PORTAL_OIDC_CLIENT_SECRET" not in env
+    assert json.loads(env["PORTAL_CAIPE_POLICY"]["value"]) == {
+        "issuer": "caipe-agentic-apps",
+        "app_id": "sandbox",
+        "default_role": "user",
+        "session_seconds": 3600,
+    }
+    assert env["PORTAL_BASE_PATH"]["value"] == "/apps/sandbox"
+    assert env["PORTAL_TERMINAL_URL"]["value"] == "wss://shell.example.com/apps/sandbox"
+
+
+def test_caipe_requires_operator_supplied_keys(tmp_path):
+    result = render(
+        tmp_path, {}, auth={"mode": "caipe", "existingSecret": "sandbox-session"}
+    )
+    assert result.returncode != 0
+    assert "auth.caipe.existingSecret is required" in result.stderr
+
+
 def test_sqlite_metadata_has_persistent_single_writer_and_no_policy_configmap(tmp_path):
     result = render(tmp_path, {})
     assert result.returncode == 0, result.stderr
@@ -480,8 +529,7 @@ def test_namespace_policy_edits_have_narrow_rbac_and_preserve_runtime_boundary(
     assert "!has(object.spec.ingress)" in expression
     assert "['openshell.ai/component'] == 'supervisor'" in expression
     assert (
-        "'sandbox.caipe.io/namespace-uid' in object.metadata.annotations"
-        in expression
+        "'sandbox.caipe.io/namespace-uid' in object.metadata.annotations" in expression
     )
     assert (
         "== oldObject.metadata.annotations['sandbox.caipe.io/namespace-uid']"
@@ -497,8 +545,7 @@ def test_namespace_policy_edits_have_narrow_rbac_and_preserve_runtime_boundary(
         in expression
     )
     assert (
-        "&& 'sandbox.caipe.io/backend' in namespaceObject.metadata.labels"
-        in expression
+        "&& 'sandbox.caipe.io/backend' in namespaceObject.metadata.labels" in expression
     )
 
 
@@ -843,7 +890,9 @@ def test_native_openshell_observability_overlay_renders_audit_and_grpc_trace_exp
     import tomllib
 
     values = yaml.safe_load(
-        (Path(__file__).parents[1] / "examples/runtime-observability.values.yaml").read_text()
+        (
+            Path(__file__).parents[1] / "examples/runtime-observability.values.yaml"
+        ).read_text()
     )
     values["openShell"].update(
         enabled=True, agentSandbox={"preflight": {"enabled": False}}
