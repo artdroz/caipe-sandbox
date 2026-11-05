@@ -18,7 +18,13 @@ module.exports = {
     {
       type: "category",
       label: "Architecture",
-      items: ["architecture", "code-map", "metadata", "security"],
+      items: [
+        "architecture",
+        "code-map",
+        "metadata",
+        "security",
+        "caipe-embedding",
+      ],
     },
     {
       type: "category",

@@ -163,6 +163,8 @@ settings:
     fsGroup: 1000
   storageClass: ""  # Empty uses the cluster default StorageClass.
   basePath: /agent-sandbox-portal
+  # Optional direct WebSocket base URL, including the portal basePath, without a trailing slash.
+  terminalUrl: ""
 
 resources:
   requests:
@@ -216,6 +218,14 @@ auth:
   existingSecret: ""
   clientSecretKey: client-secret
   sessionSecretKey: session-secret
+  # Hosted-app JWT verification. Use a separate Sandbox session-secret above.
+  caipe:
+    issuer: caipe-agentic-apps
+    app_id: sandbox
+    default_role: user
+    session_seconds: 3600
+    existingSecret: ""
+    verificationKeyKey: signing-key
   oidc:
     issuer: ""
     client_id: ""

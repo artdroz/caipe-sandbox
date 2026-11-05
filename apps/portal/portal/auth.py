@@ -11,6 +11,8 @@ from authlib.integrations.starlette_client import OAuth
 from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from .terminal_auth import TerminalCredentials
+
 COOKIE = "agent_sandbox_session"
 
 
@@ -83,8 +85,22 @@ class Authentication:
             raise ValueError("PORTAL_ADMIN_EMAILS must be a list of email addresses")
         self.admins = {email.lower() for email in admins}
         self.policy = OIDCPolicy.model_validate_json(settings.oidc_policy)
-        if settings.auth_mode not in {"omnigent", "oidc"}:
-            raise ValueError("PORTAL_AUTH_MODE must be omnigent or oidc")
+        if settings.auth_mode not in {"omnigent", "oidc", "caipe"}:
+            raise ValueError("PORTAL_AUTH_MODE must be omnigent, oidc or caipe")
+        self.hosted = None
+        self.terminal_credentials = None
+        if settings.auth_mode == "caipe":
+            from .integrations.caipe.auth import CaipeAuthentication
+
+            self.hosted = CaipeAuthentication(settings)
+            self.terminal_credentials = TerminalCredentials(settings.session_secret)
+            if (
+                settings.session_secret.strip()
+                == settings.caipe_verification_key.strip()
+            ):
+                raise ValueError(
+                    "Use separate CAIPE verification and Sandbox session keys"
+                )
         self.client = None
         if settings.auth_mode == "oidc":
             issuer = urlsplit(self.policy.issuer)
@@ -128,6 +144,8 @@ class Authentication:
 
     @property
     def login_url(self):
+        if self.hosted:
+            return None
         if self.oidc:
             return self.settings.base_path + "/auth/login"
         return "/auth/login?return_to=" + self.settings.base_path + "/"
@@ -171,6 +189,23 @@ class Authentication:
         }
 
     async def principal(self, connection, upstream):
+        if self.hosted:
+            record = (
+                getattr(connection.state, "terminal_identity", {})
+                if connection.scope["type"] == "websocket"
+                else self.hosted.identity(connection)
+            )
+            if record.get("expires", 0) <= time.time():
+                raise HTTPException(
+                    401, "CAIPE terminal session expired; reconnect from Sandbox"
+                )
+            connection.state.terminal_identity = record
+            return Principal(
+                record["owner"],
+                "admin"
+                if record["owner"] in self.admins
+                else self.hosted.policy.default_role,
+            )
         if self.oidc:
             record = connection.session.get("identity", {})
             if (

@@ -181,6 +181,8 @@ spec:
             {{- include "agent-sandbox-portal.integrations.env" . | nindent 12 }}
             - name: PORTAL_BASE_PATH
               value: {{ .Values.settings.basePath | quote }}
+            - name: PORTAL_TERMINAL_URL
+              value: {{ .Values.settings.terminalUrl | quote }}
             {{- if eq .Values.auth.mode "omnigent" }}
             - name: PORTAL_AUTH_OMNIGENT_URL
               value: {{ required "auth.omnigentUrl is required for Omnigent portal sign-in" .Values.auth.omnigentUrl | quote }}
@@ -197,10 +199,21 @@ spec:
                 secretKeyRef:
                   name: {{ required "auth.existingSecret is required for OIDC" .Values.auth.existingSecret | quote }}
                   key: {{ .Values.auth.clientSecretKey | quote }}
+            {{- end }}
+            {{- if eq .Values.auth.mode "caipe" }}
+            - name: PORTAL_CAIPE_POLICY
+              value: {{ omit .Values.auth.caipe "existingSecret" "verificationKeyKey" | toJson | quote }}
+            - name: PORTAL_CAIPE_VERIFICATION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "auth.caipe.existingSecret is required for CAIPE" .Values.auth.caipe.existingSecret | quote }}
+                  key: {{ .Values.auth.caipe.verificationKeyKey | quote }}
+            {{- end }}
+            {{- if has .Values.auth.mode (list "oidc" "caipe") }}
             - name: PORTAL_SESSION_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.auth.existingSecret | quote }}
+                  name: {{ required "auth.existingSecret is required for portal session signing" .Values.auth.existingSecret | quote }}
                   key: {{ .Values.auth.sessionSecretKey | quote }}
             {{- end }}
           volumeMounts:

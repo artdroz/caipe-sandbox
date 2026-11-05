@@ -67,8 +67,10 @@ let resourcePolicy, editingId, sharingId, sharingMembers = {}, canManage = false
 let adminControls, editingControls, editingSandbox, editingUser, globalAnnouncement;
 const selectedSandboxes = new Set();
 let loginUrl = base + "/auth/login";
+let authConfig = {};
 let signedIn = false;
 function showSignin(message = "") {
+  message ||= authConfig.login_message || "";
   badgeTooltips.hide();
   sandboxLayout.clear();
   signedIn = false;
@@ -258,7 +260,8 @@ function openTerminal(id, namespace = null, command = null, {newSession = false,
     terminal.onData(data => session.connection?.send({type:"input",data}));
     let target = namespace ? `/admin/sandboxes/${encodeURIComponent(id)}/terminal?namespace=${encodeURIComponent(namespace)}` : `/sandboxes/${encodeURIComponent(id)}/terminal${scope}`;
     if (helper) target += (target.includes("?") ? "&" : "?") + "helper=" + encodeURIComponent(helper);
-    session.connection = new TerminalConnection(`${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}${base}/api${target}`, {
+    const terminalBase = authConfig.terminal_url || `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}${base}`;
+    session.connection = new TerminalConnection(`${terminalBase}/api${target}`, {
       status:(text, retry) => { session.status = text; session.retry = retry; updateTerminal(session); },
       ready:() => {
         restartNotifications.clear(session.key);
@@ -280,7 +283,14 @@ function openTerminal(id, namespace = null, command = null, {newSession = false,
         const current = sandboxRows.get(session.sandboxKey);
         if (signedIn && current && !adminView) void checkTools(current, true);
       },
-    }, {maxRetries:helper ? 0 : 3});
+    }, {maxRetries:helper ? 0 : 3, authenticate:authConfig.terminal_credentials ? async url => {
+      const query = new URL(url).searchParams;
+      // api() already supplies the active sharing owner.
+      query.delete("owner");
+      const path = target.split("?")[0].replace(/\/terminal$/, "/terminal-credentials");
+      const result = await api(path + (query.size ? "?" + query : ""), "POST");
+      return result.credential;
+    } : undefined});
   }
   activeSession = session.key;
   byId("terminal-search-query").value = session.searchTerm;
@@ -1074,15 +1084,23 @@ window.addEventListener("beforeunload", closeAllTerminals);
 async function start() {
   try {
     const response = await fetch(base + "/auth/config", {credentials: "same-origin"});
-    if (!response.ok) throw new Error("Portal login configuration is unavailable");
-    const auth = await response.json();
-    const login = new URL(auth.login_url, location.origin);
-    if (sharedOwner) {
-      if (auth.mode === "oidc") login.searchParams.set("owner", sharedOwner);
-      else login.searchParams.set("return_to", base + "/" + scope);
+    if ([401,403].includes(response.status)) {
+      byId("sso-signin").hidden = true;
+      throw new Error("Your host session is unavailable or access was denied. Reopen Sandbox from the host application to continue.");
     }
-    loginUrl = login.pathname + login.search;
-    byId("sso-signin").disabled = false;
+    if (!response.ok) throw new Error("Portal login configuration is unavailable");
+    const auth = authConfig = await response.json();
+    document.body.classList.toggle("embedded", Boolean(auth.embedded));
+    if (auth.login_url) {
+      const login = new URL(auth.login_url, location.origin);
+      if (sharedOwner) {
+        if (auth.mode === "oidc") login.searchParams.set("owner", sharedOwner);
+        else login.searchParams.set("return_to", base + "/" + scope);
+      }
+      loginUrl = login.pathname + login.search;
+    }
+    byId("sso-signin").hidden = !auth.login_url;
+    byId("sso-signin").disabled = !auth.login_url;
     byId("sign-out").hidden = auth.mode !== "oidc";
     await refresh();
   } catch (err) { error(err); }

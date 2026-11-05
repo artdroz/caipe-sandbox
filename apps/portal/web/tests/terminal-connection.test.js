@@ -24,6 +24,65 @@ function control(socket, value) {
   socket.onmessage({data:new TextEncoder().encode(JSON.stringify(value)).buffer});
 }
 
+const settle = async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); };
+
+test("hosted terminal sends a fresh credential before allowing input", async t => {
+  let count = 0;
+  const {connection, sockets} = setup(t, null, "wss://shell/apps/sandbox/api/sandboxes/test/terminal", {
+    authenticate:async () => `credential-${++count}`,
+  });
+  assert.equal(sockets.length, 0);
+  await settle();
+  sockets[0].readyState = 1; sockets[0].onopen();
+  connection.send({type:"input",data:"pwd\n"});
+  assert.deepEqual(sockets[0].sent, [{type:"authenticate",credential:"credential-1"}]);
+  control(sockets[0], {type:"ready"});
+  connection.send({type:"input",data:"pwd\n"});
+  assert.equal(sockets[0].sent[1].type, "input");
+  sockets[0].onerror();
+  t.mock.timers.tick(1000);
+  await settle();
+  sockets[1].readyState = 1; sockets[1].onopen();
+  assert.deepEqual(sockets[1].sent, [{type:"authenticate",credential:"credential-2"}]);
+});
+
+test("closing or timing out pending authorization cannot open a late socket", async t => {
+  let resolve;
+  const {connection, sockets, errors} = setup(t, null, "wss://shell/terminal", {authenticate:() => new Promise(done => {resolve = done;})});
+  await settle();
+  t.mock.timers.tick(25000);
+  assert.equal(errors.at(-1).code, "authorization-timeout");
+  connection.close();
+  resolve("stale-credential");
+  await settle();
+  t.mock.timers.tick(100000);
+  assert.equal(sockets.length, 0);
+});
+
+test("authorization errors stay informative without exposing credentials", async t => {
+  const {sockets, errors} = setup(t, null, "wss://shell/terminal", {authenticate:async () => {throw new Error("secret credential");}});
+  await settle();
+  assert.equal(sockets.length, 0);
+  assert.equal(errors.at(-1).code, "authorization-failed");
+  assert.doesNotMatch(errors.at(-1).message, /secret credential/);
+});
+
+test("helper completion requests a new ordinary-shell credential", async t => {
+  const authorized = [];
+  const {sockets} = setup(t, null, "wss://shell/apps/sandbox/api/sandboxes/test/terminal?owner=alice&helper=login", {
+    authenticate:async url => {authorized.push(url); return "bound-credential";},
+  });
+  await settle();
+  control(sockets[0], {type:"ready"});
+  control(sockets[0], {type:"complete",exit_code:0});
+  await settle();
+  assert.equal(authorized.length, 2);
+  assert.equal(new URL(authorized[0]).searchParams.get("helper"), "login");
+  assert.equal(new URL(authorized[1]).searchParams.has("helper"), false);
+  assert.equal(new URL(authorized[1]).searchParams.get("owner"), "alice");
+  assert.equal(sockets.length, 2);
+});
+
 test("hung handshakes retry three times then offer manual retry", t => {
   const {connection,sockets,statuses,errors}=setup(t);
   for(let attempt=0;attempt<4;attempt++) {

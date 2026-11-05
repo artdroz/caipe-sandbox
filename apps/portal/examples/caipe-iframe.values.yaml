@@ -1,0 +1,22 @@
+# Overlay your normal runtime, profiles, image and database values.
+settings:
+  origin: https://caipe.example.com
+  basePath: /apps/sandbox
+  terminalUrl: wss://sandbox.example.com/apps/sandbox
+auth:
+  mode: caipe
+  existingSecret: sandbox-session
+  sessionSecretKey: session-secret
+  adminEmails: []
+  caipe:
+    app_id: sandbox
+    issuer: caipe-agentic-apps
+    existingSecret: caipe-app-token
+    verificationKeyKey: signing-key
+    default_role: user
+    session_seconds: 28800
+# Reuse the normal ingress for direct terminal WebSockets; no path rewrite.
+ingress:
+  enabled: true
+  host: sandbox.example.com
+  tlsSecretName: sandbox-tls

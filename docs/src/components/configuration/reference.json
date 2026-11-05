@@ -801,6 +801,12 @@
       "default": "/agent-sandbox-portal"
     },
     {
+      "path": "settings.terminalUrl",
+      "type": "string",
+      "default": "",
+      "pattern": "^$|^wss?://[^@?# ]+[^/]$"
+    },
+    {
       "path": "resources.requests.cpu",
       "type": "str",
       "default": "100m"
@@ -943,7 +949,12 @@
     {
       "path": "auth.mode",
       "type": "str",
-      "default": "oidc"
+      "default": "oidc",
+      "enum": [
+        "oidc",
+        "omnigent",
+        "caipe"
+      ]
     },
     {
       "path": "auth.omnigentUrl",
@@ -964,6 +975,43 @@
       "path": "auth.sessionSecretKey",
       "type": "str",
       "default": "session-secret"
+    },
+    {
+      "path": "auth.caipe.issuer",
+      "type": "string",
+      "default": "caipe-agentic-apps"
+    },
+    {
+      "path": "auth.caipe.app_id",
+      "type": "string",
+      "default": "sandbox",
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+    },
+    {
+      "path": "auth.caipe.default_role",
+      "type": "str",
+      "default": "user",
+      "enum": [
+        "user",
+        "viewer"
+      ]
+    },
+    {
+      "path": "auth.caipe.session_seconds",
+      "type": "integer",
+      "default": 3600,
+      "minimum": 60,
+      "maximum": 86400
+    },
+    {
+      "path": "auth.caipe.existingSecret",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "path": "auth.caipe.verificationKeyKey",
+      "type": "string",
+      "default": "signing-key"
     },
     {
       "path": "auth.oidc.issuer",
@@ -1224,6 +1272,21 @@
     },
     {
       "path": "PORTAL_SESSION_SECRET",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_CAIPE_POLICY",
+      "type": "str",
+      "default": "{}"
+    },
+    {
+      "path": "PORTAL_CAIPE_VERIFICATION_KEY",
+      "type": "str",
+      "default": ""
+    },
+    {
+      "path": "PORTAL_TERMINAL_URL",
       "type": "str",
       "default": ""
     },
