@@ -104,6 +104,6 @@ repository **Settings → Pages** show the site's URL.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for local checks, image customization,
 integration boundaries, dependency policy and releases. Run `make test` and
-`make docs`, and run `pre-commit run --all-files` before committing.
+`make docs` before committing.
 
 Licensed under [Apache 2.0](LICENSE).

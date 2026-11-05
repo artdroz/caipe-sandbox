@@ -27,7 +27,7 @@ It cannot verify real controller, runtime or network enforcement. Set
 `PORTAL_TEST_DATABASE_URL` to a disposable PostgreSQL database to run that engine's
 tests too; CI supplies one. Never use a deployment database for tests.
 
-Run `pre-commit run --all-files` before committing. Include images/video for UI
+Run the applicable checks before committing. Include images/video for UI
 changes, verification results and the repo's complete PR template. Use Conventional
 Commit PR titles and sign commits with your own DCO identity.
 

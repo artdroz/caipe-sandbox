@@ -1,8 +1,8 @@
 # Contributing
 
-Use small, focused pull requests with Conventional Commit titles. Run
-`pre-commit run --all-files` before committing. Include images or a video for
-visual changes; describe the verification performed.
+Use small, focused pull requests with Conventional Commit titles. Run the
+applicable checks below before committing. Include images or a video for visual
+changes; describe the verification performed.
 
 ## Local checks
 

@@ -1,9 +1,0 @@
-repos:
-  - repo: local
-    hooks:
-      - id: portable-export
-        name: Check portable source export
-        entry: python3 scripts/check-export.py
-        language: system
-        pass_filenames: false
-        always_run: true

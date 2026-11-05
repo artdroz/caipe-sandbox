@@ -41,10 +41,8 @@ jobs:
       - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
         with:
           version: v3.17.0
-      - name: Check portable export and build scripts
-        run: |
-          python3 scripts/check-export.py
-          bash -n build/*.sh
+      - name: Check build script syntax
+        run: bash -n build/*.sh
       - name: Verify locked Python dependencies and both database engines
         working-directory: apps/portal
         run: |

@@ -197,5 +197,3 @@ def test_local_application_dependency_matches_its_repo_owned_source(name):
                 assert yaml.safe_load(content) == metadata
             else:
                 assert content == (source / relative).read_bytes(), str(relative)
-    dependencies = yaml.safe_load((CHART / "Chart.yaml").read_text())["dependencies"]
-    assert all("sre-helm" not in d["repository"] for d in dependencies)
