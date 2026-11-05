@@ -1,0 +1,23 @@
+{{- if eq (empty .Values.database.url) (empty .Values.database.existingSecret) }}
+{{- fail "Set exactly one of database.url (SQLite) or database.existingSecret (PostgreSQL)" }}
+{{- end }}
+{{- if and .Values.database.url (not (regexMatch "^sqlite:////var/lib/portal/[a-zA-Z0-9._-]+$" .Values.database.url)) }}
+{{- fail "database.url must be a SQLite file under /var/lib/portal; use database.existingSecret for PostgreSQL" }}
+{{- end }}
+{{- if not .Values.database.existingSecret }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-metadata
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- if .Values.database.persistence.storageClass }}
+  storageClassName: {{ .Values.database.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.database.persistence.size | quote }}
+{{- end }}

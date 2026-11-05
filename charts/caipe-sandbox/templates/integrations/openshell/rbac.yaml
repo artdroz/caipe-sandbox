@@ -1,0 +1,55 @@
+{{- $base := printf "%s-%s" .Release.Namespace .Release.Name | trunc 48 | trimSuffix "-" }}
+{{- $identity := printf "system:serviceaccount:%s:%s" .Release.Namespace .Release.Name }}
+
+{{- if .Values.settings.openShell.endpoint }}
+{{- $classes := without (include "agent-sandbox-portal.runtimeClasses" . | fromJsonArray) "" }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: Prune=false
+    helm.sh/resource-policy: keep
+  name: {{ $base }}-access-openshell
+rules:
+  - apiGroups: [agents.x-k8s.io]
+    resources: [sandboxes, sandboxes/status]
+    verbs: [create, delete, get, list, patch, update, watch]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $base }}-openshell-runtime-metadata
+rules:
+  {{- if $classes }}
+  - apiGroups: [node.k8s.io]
+    resources: [runtimeclasses]
+    resourceNames: {{ $classes | toJson }}
+    verbs: [get]
+  {{- else }}
+  []
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $base }}-openshell-runtime-metadata
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ $base }}-openshell-runtime-metadata
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

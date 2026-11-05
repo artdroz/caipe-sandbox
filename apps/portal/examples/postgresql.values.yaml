@@ -1,0 +1,20 @@
+# Recommended starting values; the database and connection Secret are deployment-owned.
+replicas: 2
+database:
+  url: ""
+  existingSecret: portal-metadata-connection
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+topologySpreadConstraints:
+- maxSkew: 1
+  topologyKey: kubernetes.io/hostname
+  whenUnsatisfiable: ScheduleAnyway
+  labelSelector:
+    matchLabels:
+      app.kubernetes.io/name: agent-sandbox-portal  # Set to your Helm release name.

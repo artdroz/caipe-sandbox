@@ -1,0 +1,218 @@
+{{- $base := printf "%s-%s" .Release.Namespace .Release.Name | trunc 48 | trimSuffix "-" }}
+{{- $identity := printf "system:serviceaccount:%s:%s" .Release.Namespace .Release.Name }}
+# Bootstrap writes target managed namespaces and declared service identities.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: {{ $base }}-bootstrap
+spec:
+  failurePolicy: Fail
+  variables:
+    - name: target
+      expression: "request.operation == 'DELETE' ? oldObject : object"
+  matchConditions:
+    - name: portal-service-account
+      expression: {{ printf "request.userInfo.username == '%s'" $identity | quote }}
+  matchConstraints:
+    resourceRules:
+      {{- if .Values.namespacePolicy.deleteWhenEmpty }}
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [DELETE]
+        resources: [namespaces]
+      {{- end }}
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE]
+        resources: [namespaces, serviceaccounts, resourcequotas, limitranges]
+      - apiGroups: [networking.k8s.io]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [networkpolicies]
+      - apiGroups: [rbac.authorization.k8s.io]
+        apiVersions: [v1]
+        operations: [CREATE]
+        resources: [rolebindings]
+  validations:
+    - expression: >-
+        request.resource.resource == 'namespaces'
+        ? variables.target.metadata.name.startsWith('{{ .Values.settings.namespacePrefix }}-')
+          && has(variables.target.metadata.labels)
+          && variables.target.metadata.labels['app.kubernetes.io/name'] == 'agent-sandbox-portal'
+          && variables.target.metadata.labels['sandbox.caipe.io/tenant'] == 'true'
+          && variables.target.metadata.labels['sandbox.caipe.io/instance'] == '{{ $base }}-access'
+          && variables.target.metadata.labels['pod-security.kubernetes.io/enforce'] == 'restricted'
+          && variables.target.metadata.labels['pod-security.kubernetes.io/enforce-version'] == '{{ .Values.namespacePolicy.podSecurityVersion }}'
+          && has(variables.target.metadata.annotations)
+          && 'sandbox.caipe.io/owner' in variables.target.metadata.annotations
+        : request.namespace.startsWith('{{ .Values.settings.namespacePrefix }}-')
+          && namespaceObject != null
+          && has(namespaceObject.metadata.labels)
+          && namespaceObject.metadata.labels['app.kubernetes.io/name'] == 'agent-sandbox-portal'
+          && namespaceObject.metadata.labels['sandbox.caipe.io/tenant'] == 'true'
+          && namespaceObject.metadata.labels['sandbox.caipe.io/instance'] == '{{ $base }}-access'
+      message: Portal bootstrap is restricted to managed user namespaces.
+    - expression: >-
+        request.operation != 'UPDATE' ||
+          (object.metadata.name in ['sandbox-isolation', 'portal-connections']
+           && object.metadata.labels['app.kubernetes.io/name'] == 'agent-sandbox-portal'
+           && object.spec.podSelector == oldObject.spec.podSelector
+           && object.spec.policyTypes == oldObject.spec.policyTypes
+           && has(object.spec.ingress) == has(oldObject.spec.ingress)
+           && (!has(oldObject.spec.ingress) || object.spec.ingress == oldObject.spec.ingress))
+      message: Portal may update only egress on its managed isolation or connection policy.
+    - expression: >-
+        request.resource.resource != 'networkpolicies' || object.metadata.name != 'portal-connections' ||
+          (namespaceObject != null
+           && has(object.metadata.labels)
+           && object.metadata.labels['app.kubernetes.io/name'] == 'agent-sandbox-portal'
+           && object.metadata.labels['sandbox.caipe.io/instance'] == '{{ $base }}-access'
+           && has(object.metadata.annotations)
+           && 'sandbox.caipe.io/namespace-uid' in object.metadata.annotations
+           && object.metadata.annotations['sandbox.caipe.io/namespace-uid'] != ''
+           && (request.operation != 'UPDATE'
+               || (has(oldObject.metadata.annotations)
+                   && 'sandbox.caipe.io/namespace-uid' in oldObject.metadata.annotations
+                   && object.metadata.annotations['sandbox.caipe.io/namespace-uid'] == oldObject.metadata.annotations['sandbox.caipe.io/namespace-uid']))
+           && object.spec.policyTypes == ['Egress']
+           && !has(object.spec.ingress)
+           && ((has(namespaceObject.metadata.labels)
+                && (!('sandbox.caipe.io/backend' in namespaceObject.metadata.labels)
+                    || namespaceObject.metadata.labels['sandbox.caipe.io/backend'] == 'agentSandbox')
+                && (!has(object.spec.podSelector.matchLabels) || object.spec.podSelector.matchLabels.size() == 0)
+                && (!has(object.spec.podSelector.matchExpressions) || object.spec.podSelector.matchExpressions.size() == 0))
+               {{- include "agent-sandbox-portal.integrations.networkPolicySelectors" . | nindent 15 }}))
+      message: Namespace connection policies must retain their platform-owned identity and outbound workload selection.
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: {{ $base }}-bootstrap
+spec:
+  policyName: {{ $base }}-bootstrap
+  validationActions: [Deny]
+---
+# Pod Security Admission enforces restricted; this adds runtime and identity requirements.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: {{ $base }}-runners
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    namespaceSelector:
+      matchExpressions:
+        - key: sandbox.caipe.io/backend
+          operator: NotIn
+          values: {{ include "agent-sandbox-portal.integrations.backendKeys" . }}
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  validations:
+    - expression: >-
+        ((has(object.spec.runtimeClassName) && object.spec.runtimeClassName in {{ include "agent-sandbox-portal.runtimeClasses" . }})
+         || (!has(object.spec.runtimeClassName) && '' in {{ include "agent-sandbox-portal.runtimeClasses" . }}))
+        && has(object.spec.serviceAccountName) && object.spec.serviceAccountName == '{{ .Values.settings.runnerServiceAccount }}'
+        && has(object.spec.automountServiceAccountToken) && object.spec.automountServiceAccountToken == false
+      message: User sandbox Pods require a deployment-approved runtime and tokenless runner identity.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: {{ $base }}-runners
+spec:
+  policyName: {{ $base }}-runners
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        app.kubernetes.io/name: agent-sandbox-portal
+        sandbox.caipe.io/tenant: "true"
+        sandbox.caipe.io/instance: {{ $base }}-access
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: {{ $base }}-binding
+spec:
+  failurePolicy: Fail
+  matchConditions:
+    - name: portal-service-account
+      expression: {{ printf "request.userInfo.username == '%s'" $identity | quote }}
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["rbac.authorization.k8s.io"]
+        apiVersions: [v1]
+        operations: [CREATE]
+        resources: [rolebindings]
+  validations:
+    - expression: >-
+        (object.metadata.name == 'sandbox-portal-access'
+          && object.roleRef.kind == 'ClusterRole'
+          && object.roleRef.name == '{{ $base }}-access'
+          && object.subjects.size() == 1
+          && object.subjects[0].kind == 'ServiceAccount'
+          && object.subjects[0].name == '{{ .Release.Name }}'
+          && object.subjects[0].namespace == '{{ .Release.Namespace }}')
+        {{- include "agent-sandbox-portal.integrations.bindings" . | nindent 8 }}
+      message: Portal may bind only its own namespace access role to itself.
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: {{ $base }}-binding
+spec:
+  policyName: {{ $base }}-binding
+  validationActions: [Deny]
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: {{ $base }}-identity
+spec:
+  failurePolicy: Fail
+  matchConditions:
+    - name: portal-service-account
+      expression: {{ printf "request.userInfo.username == '%s'" $identity | quote }}
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE]
+        resources: [serviceaccounts]
+  validations:
+    - expression: >-
+        (object.metadata.name in ['{{ .Values.settings.runnerServiceAccount }}'{{ include "agent-sandbox-portal.integrations.runnerIdentities" . }}]
+          && has(object.automountServiceAccountToken)
+          && object.automountServiceAccountToken == false)
+      message: Runner ServiceAccount must not mount Kubernetes credentials.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  name: {{ $base }}-identity
+spec:
+  policyName: {{ $base }}-identity
+  validationActions: [Deny]

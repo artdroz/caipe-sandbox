@@ -1,0 +1,7 @@
+node_modules/
+build/
+.docusaurus/
+.docusaurus-build/
+package-lock.json
+# Generated from the chart and Python models.
+src/components/configuration/reference.json

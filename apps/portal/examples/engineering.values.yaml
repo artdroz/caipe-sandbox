@@ -1,0 +1,103 @@
+settings:
+  runtimeClass: kata-qemu  # Replace with an installed, approved class.
+# Replace the image with the published engineering-image digest for this release.
+profiles:
+- id: engineering
+  title: Engineering micro VM
+  description: Persistent engineering micro VM with Bash setup, tool login helpers,
+    and Omnigent login and host startup.
+  agentSandbox:
+    spec:
+      podTemplate:
+        spec:
+          containers:
+          - name: host
+            image: example.invalid/agent-sandbox-host@sha256:0000000000000000000000000000000000000000000000000000000000000000
+            command:
+            - sandbox-start
+            workingDir: /home/sandbox
+            env:
+            - name: HOME
+              value: /home/sandbox
+            - name: OMNIGENT_SERVER_URL
+              value: https://omnigent.example.com
+            volumeMounts:
+            - name: home
+              mountPath: /home/sandbox
+            args:
+            - --service
+            - omnigent
+  terminal:
+    command:
+    - bash
+    - -l
+  # Cards show the first two available helpers; More expands the remaining list.
+  helpers:
+  - id: codex-login
+    title: Sign in to Codex
+    icon: codex
+    script: |
+      exec codex login --device-auth
+    status:
+      command:
+      - codex
+      - login
+      - status
+      signed_out_contains:
+      - not logged in
+  - id: claude-login
+    title: Sign in to Claude
+    icon: claude
+    script: |
+      exec claude auth login
+    status:
+      command:
+      - claude
+      - auth
+      - status
+      - --json
+      json_field: loggedIn
+  - id: omnigent-login
+    title: Sign in to Omnigent
+    icon: omnigent
+    script: |
+      exec omnigent login "$OMNIGENT_SERVER_URL"
+  - id: caipe-login
+    title: Sign in to CAIPE
+    icon: caipe
+    script: |
+      exec caipe auth login --device
+    status:
+      command:
+      - caipe
+      - auth
+      - status
+      - --json
+      json_field: authenticated
+  ui:
+    resources:
+      default:
+        requests:
+          cpu: 500m
+          memory: 512Mi
+        limits:
+          cpu: '1'
+          memory: 1Gi
+        storage: 20Gi
+      minimum:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 100m
+          memory: 256Mi
+        storage: 1Gi
+      maximum:
+        requests:
+          cpu: '2'
+          memory: 4Gi
+        limits:
+          cpu: '2'
+          memory: 4Gi
+        storage: 50Gi
+defaultProfile: engineering

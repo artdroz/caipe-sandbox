@@ -1,0 +1,19 @@
+---
+title: Saved state and IDs
+hide_table_of_contents: true
+description: Sandbox identity, retained configuration, administrator controls and native observations.
+---
+
+import ConfigurationReference from "@site/src/components/configuration/FieldReference";
+
+These values describe **a sandbox and the portal's operation**. They are not
+additional keys to put in a profile or Helm values file. The portal saves intended
+configuration, ownership, sharing and supported administrative edits in its
+metadata database; the runtime supplies native identity and observed status.
+
+A portal sandbox UUID, its friendly name, Kubernetes object UID and Linux UID
+serve different purposes. Select an entry to see who assigns it, whether it can
+be edited, and how it relates to the saved profile and live workload. See
+[Database and persistence](metadata.md) for database and reconciliation behavior.
+
+<ConfigurationReference key="state" scope="state" />

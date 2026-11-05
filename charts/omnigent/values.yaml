@@ -1,0 +1,117 @@
+# Kubernetes API credentials are opt-in for managed sandbox provisioning.
+# Supply a named service account with namespace-scoped RBAC when enabling.
+serviceAccount:
+  name: ""
+  automountServiceAccountToken: false
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/omnigent-ai/omnigent-server-kubernetes
+  # Upstream Omnigent v0.19.1; Kubernetes API access remains opt-in.
+  digest: sha256:5746692f3c3a95502f76f83260c3e5ff36348ad8c3cdce1fab85784065e44dad
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+server:
+  port: 8000
+
+# Non-secret environment variables. Values are boot defaults; OmniGent admins
+# can persist sharing changes through the UI after startup.
+config:
+  HOST: 0.0.0.0
+  ARTIFACT_DIR: /data/artifacts
+  OMNIGENT_DATA_DIR: /data
+  OMNIGENT_ADMIN_CREDENTIALS_PATH: /data/admin-credentials
+  OMNIGENT_FEATURES: ""
+  OMNIGENT_AUTH_ENABLED: "1"
+  OMNIGENT_AUTH_PROVIDER: accounts
+  OMNIGENT_ACCOUNTS_AUTO_OPEN: "0"
+  OMNIGENT_SHARING_MODE: "off"
+  OMNIGENT_PUBLIC_SHARING: "off"
+  OMNIGENT_TELEMETRY_ENABLED: "0"
+
+# Must contain DATABASE_URL and the cookie/OIDC secrets for the selected auth
+# provider. Create it outside this chart or with extraObjects.
+existingSecret: omnigent-secrets
+
+# Additional Kubernetes objects managed by this Helm release. Supply complete
+# objects; strings are not evaluated as Helm templates.
+extraObjects: []
+
+# Optional mounts for operator-managed files supplied by extraObjects or
+# resources created outside this chart.
+extraVolumes: []
+extraVolumeMounts: []
+
+# Optional container overrides. Defaults preserve the upstream image command.
+command: []
+args: []
+extraEnv: []
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  host: ""
+  path: /
+  pathType: Prefix
+  tls:
+    enabled: false
+    secretName: ""
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  size: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: ""
+  # Keep the claim after Helm uninstall; the operator must delete it explicitly.
+  keep: true
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+startupProbe:
+  httpGet:
+    path: /health
+    port: http
+  periodSeconds: 10
+  failureThreshold: 30
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  periodSeconds: 10
+  timeoutSeconds: 5
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  periodSeconds: 30
+  timeoutSeconds: 5
+
+podAnnotations: {}
+podSecurityContext: {}
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

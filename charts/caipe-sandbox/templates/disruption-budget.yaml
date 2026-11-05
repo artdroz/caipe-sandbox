@@ -1,0 +1,21 @@
+{{- if and .Values.podDisruptionBudget.enabled (gt (int .Values.replicas) 1) }}
+{{- if and (hasKey .Values.podDisruptionBudget "maxUnavailable") (ne .Values.podDisruptionBudget.maxUnavailable nil) (ne .Values.podDisruptionBudget.minAvailable nil) }}
+{{- fail "Set only one of podDisruptionBudget.minAvailable or maxUnavailable" }}
+{{- end }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  {{- if and (hasKey .Values.podDisruptionBudget "maxUnavailable") (ne .Values.podDisruptionBudget.maxUnavailable nil) }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  {{- if eq .Values.podDisruptionBudget.minAvailable nil }}
+  {{- fail "podDisruptionBudget.minAvailable or maxUnavailable is required" }}
+  {{- end }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Release.Name }}
+{{- end }}

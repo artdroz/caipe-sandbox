@@ -1,0 +1,28 @@
+# Strategic-merge patch for a rendered upstream Agent Sandbox controller Deployment.
+# Apply through deployment tooling and replace the collector endpoint.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-sandbox-controller
+spec:
+  template:
+    spec:
+      containers:
+      - name: agent-sandbox-controller
+        args:
+        - --leader-elect=true
+        - --zap-devel=false
+        - --zap-encoder=json
+        - --zap-log-level=info
+        - --zap-time-encoding=rfc3339
+        - --disable-sandbox-events=false
+        - --enable-tracing=true
+        env:
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: http://otel-collector.observability.svc:4317
+        - name: OTEL_EXPORTER_OTLP_INSECURE
+          value: 'true'
+        - name: OTEL_TRACES_SAMPLER
+          value: parentbased_traceidratio
+        - name: OTEL_TRACES_SAMPLER_ARG
+          value: '0.1'

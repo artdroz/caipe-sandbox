@@ -1,0 +1,20 @@
+---
+title: Environment variables
+hide_table_of_contents: true
+description: Portal process inputs and their mapping from Helm values, Secrets and generated runtime identity.
+---
+
+import ConfigurationReference from "@site/src/components/configuration/FieldReference";
+
+These are the portal's **process inputs**, including `PORTAL_*` settings and
+the telemetry/server variables read by the application or wired by the chart.
+When deploying with Helm, usually configure the corresponding
+[Helm chart values](helm-values.mdx): the chart translates them into environment
+variables, Secret references, paths and release identities.
+
+Displayed Python defaults apply before Helm supplies its settings; the two can
+differ. Select a variable to see its mapping. This page does not read the
+environment of your running portal or expose its credentials. Standard SDKs can
+support additional native environment variables beyond this portal reference.
+
+<ConfigurationReference key="environment" scope="environment" />

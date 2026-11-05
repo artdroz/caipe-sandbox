@@ -1,0 +1,18 @@
+---
+title: Profile fields
+hide_table_of_contents: true
+description: Portal-owned fields within a sandbox profile, their validation and enforcement.
+---
+
+import ConfigurationReference from "@site/src/components/configuration/FieldReference";
+
+These fields belong inside **one entry of `profiles`** in your Helm values.
+They describe the sandbox's starting image, commands, helpers and permitted
+resource choices. See [Profiles](profiles.md) for how profiles work.
+
+Select a field to inspect its purpose, ownership, editability and source
+constraints. The native `agentSandbox.spec` and `openShell.spec` entries include
+their portal restrictions and full examples. Reserved fields are explicitly
+marked when unavailable.
+
+<ConfigurationReference key="profile" scope="profile" />

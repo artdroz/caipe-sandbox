@@ -1,0 +1,286 @@
+{{- if gt (len (.Values.profiles | toJson)) 524288 }}
+{{- fail "Profile catalog exceeds 512 KiB" }}
+{{- end }}
+{{- if and .Values.namespace.allowedStrategies (not (has .Values.namespace.strategy .Values.namespace.allowedStrategies)) }}
+{{- fail "namespace.allowedStrategies must include namespace.strategy" }}
+{{- end }}
+{{- if and (not .Values.database.existingSecret) (or (ne (int .Values.replicas) 1) (ne .Values.strategy.type "Recreate")) }}
+{{- fail "SQLite requires exactly one portal replica and strategy.type=Recreate; use PostgreSQL for replication or RollingUpdate" }}
+{{- end }}
+{{- if and (eq .Values.strategy.type "RollingUpdate") (not .Values.strategy.rollingUpdate) }}
+{{- fail "RollingUpdate requires strategy.rollingUpdate settings" }}
+{{- end }}
+{{- if eq .Values.strategy.type "RollingUpdate" }}
+{{- $unavailable := toString .Values.strategy.rollingUpdate.maxUnavailable }}
+{{- $surge := toString .Values.strategy.rollingUpdate.maxSurge }}
+{{- if and (has $unavailable (list "0" "0%")) (has $surge (list "0" "0%")) }}
+{{- fail "RollingUpdate requires non-zero maxSurge or maxUnavailable" }}
+{{- end }}
+{{- end }}
+{{- if le (int .Values.terminationGracePeriodSeconds) (int (add .Values.shutdown.propagationSeconds .Values.shutdown.drainSeconds .Values.shutdown.serverGraceSeconds)) }}
+{{- fail "terminationGracePeriodSeconds must exceed propagationSeconds + drainSeconds + serverGraceSeconds" }}
+{{- end }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+  strategy:
+    type: {{ .Values.strategy.type }}
+    {{- if eq .Values.strategy.type "Recreate" }}
+    rollingUpdate: null
+    {{- else }}
+    rollingUpdate:
+      {{- toYaml .Values.strategy.rollingUpdate | nindent 6 }}
+    {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Release.Name }}
+  template:
+    metadata:
+      annotations:
+        checksum/profiles: {{ .Values.profiles | toJson | sha256sum }}
+      labels:
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      # Recreate stops all old portal Pods before any migration init container starts.
+      initContainers:
+        - name: metadata-schema
+          image: "{{ .Values.image.repository }}@{{ .Values.image.digest }}"
+          command: {{ include "agent-sandbox-portal.database.command" . }}
+          env:
+            {{- include "agent-sandbox-portal.database.env" . | nindent 12 }}
+          {{- if or (not .Values.database.existingSecret) .Values.database.caSecret }}
+          volumeMounts:
+            {{- include "agent-sandbox-portal.database.mounts" . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: portal
+          image: "{{ required "image.repository is required" .Values.image.repository }}@{{ required "image.digest is required" .Values.image.digest }}"
+          lifecycle:
+            preStop:
+              exec:
+                command: [python, -m, portal.drain]
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            {{- include "agent-sandbox-portal.database.env" . | nindent 12 }}
+            - name: OTEL_SERVICE_NAME
+              value: caipe-sandbox-portal
+            - name: PORTAL_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: {{ printf "helm.chart.version=%s,container.image.id=%s@%s,k8s.namespace.name=%s,k8s.pod.uid=$(PORTAL_POD_UID),service.instance.id=$(PORTAL_POD_UID)" .Chart.Version .Values.image.repository .Values.image.digest .Release.Namespace | quote }}
+            {{- if .Values.observability.tracing.endpoint }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.observability.tracing.endpoint | quote }}
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_EXPORTER_OTLP_TIMEOUT
+              value: "3"
+            - name: OTEL_TRACES_SAMPLER
+              value: parentbased_traceidratio
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: {{ .Values.observability.tracing.sampleRatio | quote }}
+            {{- end }}
+            - name: PORTAL_OPERATION_LEASE_SECONDS
+              value: {{ .Values.settings.operationLeaseSeconds | quote }}
+            - name: PORTAL_MAX_SANDBOXES_PER_USER
+              value: {{ .Values.settings.maxSandboxesPerUser | quote }}
+            - name: PORTAL_TERMINAL_IO_WORKERS
+              value: {{ .Values.settings.terminalIoWorkers | quote }}
+            - name: PORTAL_RECONCILE_INTERVAL_SECONDS
+              value: {{ .Values.settings.reconcileIntervalSeconds | quote }}
+            - name: WEB_CONCURRENCY
+              value: "1"
+            - name: PORTAL_DRAIN_FILE
+              value: /var/run/portal/drain
+            - name: PORTAL_DRAIN_PROPAGATION_SECONDS
+              value: {{ .Values.shutdown.propagationSeconds | quote }}
+            - name: PORTAL_DRAIN_SECONDS
+              value: {{ .Values.shutdown.drainSeconds | quote }}
+            - name: UVICORN_TIMEOUT_GRACEFUL_SHUTDOWN
+              value: {{ .Values.shutdown.serverGraceSeconds | quote }}
+            - name: PORTAL_NAMESPACE
+              value: {{ .Values.namespace | toJson | quote }}
+            - name: PORTAL_DEFAULT_PROFILE
+              value: {{ .Values.defaultProfile | quote }}
+            - name: PORTAL_PROFILES_FILE
+              value: /etc/portal-profiles/profiles.json
+            - name: PORTAL_ORIGIN
+              value: {{ .Values.settings.origin | quote }}
+            - name: PORTAL_NAMESPACE_PREFIX
+              value: {{ .Values.settings.namespacePrefix | quote }}
+            - name: PORTAL_PORTAL_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: PORTAL_PORTAL_SERVICE_ACCOUNT
+              value: {{ .Release.Name | quote }}
+            - name: PORTAL_NAMESPACE_ACCESS_ROLE
+              value: {{ printf "%s-%s" .Release.Namespace .Release.Name | trunc 48 | trimSuffix "-" }}-access
+            - name: PORTAL_NAMESPACE_POLICY
+              value: {{ .Values.namespacePolicy | toJson | quote }}
+            - name: PORTAL_RUNTIME_CLASS
+              value: {{ .Values.settings.runtimeClass | quote }}
+            - name: PORTAL_ALLOWED_RUNTIME_CLASSES
+              value: {{ include "agent-sandbox-portal.runtimeClasses" . | quote }}
+            - name: PORTAL_RUNNER_SERVICE_ACCOUNT
+              value: {{ .Values.settings.runnerServiceAccount | quote }}
+            - name: PORTAL_RUNNER_IMAGE_PULL_SECRETS
+              value: {{ .Values.settings.runnerImagePullSecrets | toJson | quote }}
+            - name: PORTAL_SANDBOX_SECURITY_CONTEXT
+              value: {{ .Values.settings.sandboxSecurityContext | toJson | quote }}
+            - name: PORTAL_STORAGE_CLASS
+              value: {{ .Values.settings.storageClass | quote }}
+            - name: PORTAL_RESOURCE_POLICY
+              value: {{ .Values.resourcePolicy | toJson | quote }}
+            {{- include "agent-sandbox-portal.integrations.env" . | nindent 12 }}
+            - name: PORTAL_BASE_PATH
+              value: {{ .Values.settings.basePath | quote }}
+            {{- if eq .Values.auth.mode "omnigent" }}
+            - name: PORTAL_AUTH_OMNIGENT_URL
+              value: {{ required "auth.omnigentUrl is required for Omnigent portal sign-in" .Values.auth.omnigentUrl | quote }}
+            {{- end }}
+            - name: PORTAL_AUTH_MODE
+              value: {{ .Values.auth.mode | quote }}
+            - name: PORTAL_ADMIN_EMAILS
+              value: {{ .Values.auth.adminEmails | toJson | quote }}
+            - name: PORTAL_OIDC_POLICY
+              value: {{ .Values.auth.oidc | toJson | quote }}
+            {{- if eq .Values.auth.mode "oidc" }}
+            - name: PORTAL_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required "auth.existingSecret is required for OIDC" .Values.auth.existingSecret | quote }}
+                  key: {{ .Values.auth.clientSecretKey | quote }}
+            - name: PORTAL_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecret | quote }}
+                  key: {{ .Values.auth.sessionSecretKey | quote }}
+            {{- end }}
+          volumeMounts:
+            {{- include "agent-sandbox-portal.database.mounts" . | nindent 12 }}
+            - name: runtime
+              mountPath: /var/run/portal
+            - name: profiles
+              mountPath: /etc/portal-profiles
+              readOnly: true
+            {{- include "agent-sandbox-portal.integrations.mounts" . | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      volumes:
+        {{- include "agent-sandbox-portal.database.volumes" . | nindent 8 }}
+        - name: runtime
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Mi
+        - name: profiles
+          configMap:
+            name: {{ .Release.Name }}-profiles
+        {{- include "agent-sandbox-portal.integrations.volumes" . | nindent 8 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-profiles
+data:
+  profiles.json: {{ .Values.profiles | toJson | quote }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ .Release.Name }}
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . | quote }}
+  {{- end }}
+  {{- if .Values.ingress.tlsSecretName }}
+  tls:
+    - hosts: [{{ .Values.ingress.host | quote }}]
+      secretName: {{ .Values.ingress.tlsSecretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: {{ .Values.settings.basePath }}/
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}
+                port:
+                  name: http
+{{- end }}

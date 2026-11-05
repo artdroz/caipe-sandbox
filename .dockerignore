@@ -1,0 +1,14 @@
+**
+!apps/
+!apps/portal/
+!apps/portal/**
+!sandbox-images/
+!sandbox-images/**
+!charts/
+!charts/**
+apps/portal/node_modules/
+apps/portal/.venv/
+apps/portal/*.egg-info/
+**/__pycache__/
+**/.pytest_cache/
+apps/portal/build/

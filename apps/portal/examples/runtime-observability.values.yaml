@@ -1,0 +1,14 @@
+# Overlay on an installation with OpenShell enabled and its credentials configured.
+# Replace the collector service with the deployment's own endpoints.
+observability:
+  tracing:
+    endpoint: http://otel-collector.observability.svc:4318
+    sampleRatio: 0.1
+openShell:
+  server:
+    logLevel: info
+    otlp:
+      endpoint: http://otel-collector.observability.svc:4317
+  gatewayConfig:
+    openshell.gateway.otlp.ocsf:
+      enabled: true

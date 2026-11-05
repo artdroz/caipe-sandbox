@@ -1,0 +1,11 @@
+CAIPE Sandbox
+
+The Agent Sandbox CRD and controller deployment definitions derive from
+Kubernetes SIGs Agent Sandbox v1.0.5 (Apache License 2.0).
+See charts/agent-sandbox/UPSTREAM-LICENSE.
+
+OpenShell and Kata charts come from their upstream OCI releases and remain
+subject to the licenses in NVIDIA/OpenShell and kata-containers/kata-containers.
+Browser dependencies' licenses are emitted into
+portal/static/licenses.txt during the build. Integration logos remain subject
+to their respective owners' trademark policies.
