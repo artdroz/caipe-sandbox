@@ -1,0 +1,97 @@
+# Replace the image with the reviewed engineering-image digest for this release.
+settings:
+  namespacePrefix: sndbx
+  runtimeClass: kata-qemu
+  openShell:
+    endpoint: https://sandbox-openshell.sandbox-system.svc.cluster.local:8080
+    gatewayId: sandbox-openshell
+    gatewayServiceAccount: sandbox-openshell
+    sandboxServiceAccount: sandbox-openshell-sandbox
+    clientSecret: sandbox-openshell-client-tls
+    storageGiB: 20
+    namespaceLabel: sandbox.caipe.io/openshell
+    supervisorResources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits: {cpu: 500m, memory: 512Mi}
+profiles:
+- id: protected-engineering
+  title: Protected engineering
+  description: Engineering tools with OpenShell filesystem and network policy.
+  openShell:
+    spec:
+      template:
+        image: example.invalid/agent-sandbox-host@sha256:0000000000000000000000000000000000000000000000000000000000000000
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: '2'
+            memory: 4Gi
+      command:
+      - sandbox-start
+      environment:
+        HOME: /sandbox
+      policy:
+        version: 1
+        landlock:
+          compatibility: hard_requirement
+        filesystem:
+          include_workdir: true
+          read_only:
+          - /bin
+          - /usr
+          - /lib
+          - /lib64
+          - /proc
+          - /dev/urandom
+          - /app
+          - /opt
+          - /etc
+          - /var/log
+          read_write:
+          - /sandbox
+          - /tmp
+          - /dev/null
+        network_policies:
+          github:
+            name: github-readonly
+            endpoints:
+            - host: api.github.com
+              port: 443
+              protocol: rest
+              enforcement: NETWORK_ENFORCEMENT_MODE_ENFORCE
+              access: NETWORK_ACCESS_PRESET_READ_ONLY
+            binaries:
+            - path: /usr/bin/curl
+  terminal:
+    command:
+    - /bin/bash
+    - -i
+  ui:
+    resources:
+      default:
+        requests:
+          cpu: 500m
+          memory: 1Gi
+        limits:
+          cpu: '2'
+          memory: 4Gi
+        storage: 20Gi
+      minimum:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 100m
+          memory: 256Mi
+        storage: 20Gi
+      maximum:
+        requests:
+          cpu: '4'
+          memory: 8Gi
+        limits:
+          cpu: '4'
+          memory: 8Gi
+        storage: 20Gi
+defaultProfile: protected-engineering

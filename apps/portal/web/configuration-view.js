@@ -1,0 +1,26 @@
+import { jsonBlock, jsonDiffBlock } from "./json-view.js";
+import { icon } from "./icons.js";
+import { dateTime } from "./timestamps.js";
+
+const esc = (value) => String(value ?? "").replace(/[&<>"']/g, character => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[character]));
+
+export function sandboxConfiguration(data, sandbox) {
+  const profileSpec = data.profile ? data.profile_spec : null;
+  const revision = data.creation?.revision;
+  return `<div class="configuration-actions"><button class="secondary" type="button" data-refresh-configuration>${icon("refresh")}<span>Refresh status</span></button>${data.can_sync ? `<button class="configuration-sync warning" type="button" data-sync-configuration title="Apply saved resource settings; processes may restart">${icon("warning")}<span>Sync configuration</span></button>` : ""}</div>
+    <div class="configuration-profile"><div class="configuration-profile-field"><span class="configuration-profile-label">Profile<span class="profile-info"><button id="configuration-profile-info" class="profile-info-button" type="button" aria-label="About profiles" aria-describedby="configuration-profile-tooltip">${icon("info")}</button><span id="configuration-profile-tooltip" class="field-tooltip" role="tooltip">A profile provides the initial tools, startup scripts and configuration for a sandbox. Your current configuration may differ.</span></span>:</span><strong title="${esc(revision || "")}">${esc(data.profile?.title || "Not assigned")}</strong></div><button class="secondary" type="button" data-compare-profile aria-expanded="false" ${profileSpec ? "" : 'disabled title="No profile was recorded for this sandbox"'}>Compare with profile</button></div>
+    ${sandbox ? `<dl class="configuration-metadata"><div><dt>Name</dt><dd>${esc(sandbox.title)}</dd></div><div><dt>Sandbox ID</dt><dd><code>${esc(sandbox.native_id || sandbox.id)}</code></dd></div><div><dt>Owner</dt><dd>${esc(sandbox.owner)}</dd></div><div><dt>Created</dt><dd>${dateTime(sandbox.created_at)}</dd></div><div><dt title="Last change saved by the portal">Updated</dt><dd>${dateTime(sandbox.updated_at)}</dd></div>${sandbox.namespace_owner ? `<div><dt>Namespace owner</dt><dd>${esc(sandbox.namespace_owner)}</dd></div>` : ""}<div><dt>Namespace</dt><dd><code>${esc(sandbox.namespace)}</code></dd></div>${sandbox.allocation ? `<div><dt>Reserved resources</dt><dd>${esc(sandbox.allocation.cpu_request_millicores/1000)} cores · ${esc(sandbox.allocation.memory_request_mib/1024)} GiB memory</dd></div>` : ""}${sandbox.profile ? `<div><dt>Profile ID</dt><dd><code>${esc(sandbox.profile.id)}</code></dd></div><div><dt>Profile revision</dt><dd><code>${esc(sandbox.profile.revision)}</code></dd></div>` : ""}</dl>` : ""}
+    <p class="hint" data-configuration-result role="status" hidden></p>
+    <p class="hint">${data.capabilities?.resize === false ? "Resources are chosen at creation. This backend does not support resizing existing micro VMs." : "CPU and memory can be changed while suspended. Disk size is chosen at creation. These choices update the saved native configuration."}</p>
+    <div class="configuration-heading"><h3>Effective configuration</h3></div>
+    ${data.configuration_drift && data.native_configuration ? `<details class="sandbox-failure" open><summary>Provider settings differ from this configuration</summary><p>The saved configuration is unchanged. Review these differences before making further changes.</p>${jsonDiffBlock({spec:data.native_configuration.spec,labels:data.native_configuration.metadata?.labels,annotations:data.native_configuration.metadata?.annotations}, {spec:data.desired.spec,labels:data.desired.metadata?.labels,annotations:data.desired.metadata?.annotations}, {beforeLabel:"Actual configuration",afterLabel:"Saved configuration"})}</details>` : ""}
+    ${data.observation_error ? `<p class="hint" role="status">${esc(data.observation_error)}. Showing the saved configuration.</p>` : ""}
+    <div data-effective-configuration>${jsonBlock(data.desired)}</div>
+    <div data-profile-comparison hidden><p class="hint">Changes from the profile used to create this sandbox. Compares sandbox settings, including platform defaults and your resource choices.</p>${profileSpec ? jsonDiffBlock(profileSpec, data.desired.spec) : ""}</div>`;
+}
+
+export function profileDetails(profile) {
+  const resources = profile.definition?.ui?.resources;
+  const editable = resources ? `<h3>Editable resources</h3><p class="hint">Defaults and ranges are defined in ui.resources. ${profile.capabilities?.resize === false ? "CPU and memory: at creation." : "CPU and memory: at creation or while suspended."} ${profile.capabilities?.storage_source === "platform" ? "Disk size is set by the platform." : "Disk: at creation only."} The API validates profile bounds and platform controls.</p>` : "";
+  return `<p>${esc(profile.description)}</p><dl class="profile-metadata"><dt>Profile ID</dt><dd><code>${esc(profile.id)}</code></dd><dt>Revision</dt><dd><code>${esc(profile.revision)}</code></dd></dl>${editable}${jsonBlock(profile.definition)}`;
+}

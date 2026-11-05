@@ -1,0 +1,15 @@
+dependencies:
+- name: agent-sandbox
+  repository: file://../agent-sandbox
+  version: 1.0.5-3
+- name: helm-chart
+  repository: oci://ghcr.io/nvidia/openshell
+  version: 0.1.6
+- name: omnigent
+  repository: file://../omnigent
+  version: 0.3.0
+- name: kata-deploy
+  repository: oci://ghcr.io/kata-containers/kata-deploy-charts
+  version: 4.2.0
+digest: sha256:93475bf9135d81d3b065e97ab1d9da4a8cdd356abb5107a87a962efb4ca90a45
+generated: "2026-11-05T13:11:41.4495Z"

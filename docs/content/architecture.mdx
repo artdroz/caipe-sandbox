@@ -1,0 +1,65 @@
+---
+title: System architecture
+description: Explore the sandbox portal, Kubernetes cluster, micro VMs, integrations and user interactions.
+hide_table_of_contents: true
+---
+
+import SystemArchitecture from "@site/src/components/architecture/SystemArchitecture";
+
+<SystemArchitecture />
+
+## Runtime boundaries
+
+The portal UI runs in the browser. Its API, shared management and integration
+adapters share the portal application process. The Agent Sandbox controller,
+OpenShell gateway and supervisor, and micro VM processes run separately.
+
+Agent Sandbox is required in this view. Kata is optional and selected by default;
+it adds micro VM isolation to the workload Pod. Disable it to see a standard Pod.
+Omnigent adds its UI, server and runner connection. OpenShell adds protected provisioning and execution;
+it replaces the portal’s direct Kubernetes-exec path.
+
+Omnigent UI sign-in, runner registration and working through an existing host
+tunnel are separate interactions. Runner registration follows native CLI login;
+browser sign-in does not register a micro VM. Choose an interaction to highlight
+its path, or select a component for its identity and state ownership details.
+
+## Internet access
+
+The Internet node sits outside the cluster. Follow **Workload connects to Internet**
+to see outbound requests and select **Cluster egress** for the policy details.
+This box represents platform networking, not another portal deployment.
+
+Direct Agent Sandbox Pods use namespace NetworkPolicy: cluster DNS and public
+IPv4 HTTPS are allowed by default, with private/link-local ranges excluded.
+Operators can disable that HTTPS grant or add explicit egress rules. The CNI
+must enforce the policy, and the platform must supply routing and any required NAT.
+
+With OpenShell selected, the trusted supervisor checks relayed requests against
+the profile's binary/endpoint policy and opens approved external connections; the protected namespace baseline denies direct
+workload egress. Native boundary transport and external connectivity remain
+platform prerequisites. The portal does not currently integrate an Envoy egress
+service. Kata isolation does not itself change network permissions. See the
+[OpenShell v0.1.6 network request path](https://docs.nvidia.com/openshell/v0.1.6/about/architecture#how-a-network-request-travels)
+for the native supervisor boundary.
+
+## State and configuration
+
+The profile catalog is deployment-managed configuration. SQLite or PostgreSQL
+stores sandbox inventory, intended manifests, namespace grants, operation leases,
+controls and announcements. Native runtime state is observed and reconciled
+through the selected integration. Persistent storage retains files and login caches; suspension
+does not preserve process memory.
+
+## Further reading
+
+- [Code map](/guide/code-map): modules responsible for management, integrations,
+  execution and storage.
+- [Security](security.md): authentication and enforcement boundaries.
+- [Metadata and persistence](metadata.md): active database behavior and current limits.
+- [Deployment ownership](deployment.md): platform prerequisites and validation.
+- [Scaling](scaling.md): topics reserved for a later scaling guide.
+
+This view describes the reviewed reference implementation, not a live cluster
+or a deployment manifest. Portal code, workload helpers and charts are included in this repository. Operators must install and validate storage,
+admission, network and runtime enforcement separately.

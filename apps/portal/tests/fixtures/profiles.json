@@ -1,0 +1,142 @@
+[
+  {
+    "id": "development",
+    "title": "Development",
+    "description": "A persistent workspace with profile-defined tools and helpers.",
+    "agentSandbox": {
+      "spec": {
+        "podTemplate": {
+          "spec": {
+            "containers": [
+              {
+                "name": "host",
+                "image": "example/tools:v1",
+                "command": [
+                  "sleep",
+                  "infinity"
+                ],
+                "workingDir": "/home/sandbox",
+                "env": [
+                  {
+                    "name": "HOME",
+                    "value": "/home/sandbox"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "home",
+                    "mountPath": "/home/sandbox"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    "terminal": {
+      "command": [
+        "bash",
+        "-l"
+      ]
+    },
+    "helpers": [
+      {
+        "id": "codex-login",
+        "title": "Sign in to Codex",
+        "icon": "codex",
+        "script": "exec codex login --device-auth",
+        "status": {
+          "command": [
+            "codex",
+            "login",
+            "status"
+          ],
+          "signed_out_contains": [
+            "not logged in"
+          ]
+        }
+      },
+      {
+        "id": "claude-login",
+        "title": "Sign in to Claude",
+        "icon": "claude",
+        "script": "exec claude auth login",
+        "status": {
+          "command": [
+            "claude",
+            "auth",
+            "status",
+            "--json"
+          ],
+          "json_field": "loggedIn"
+        }
+      },
+      {
+        "id": "caipe-login",
+        "title": "Sign in to CAIPE",
+        "icon": "caipe",
+        "script": "exec caipe auth login --device",
+        "status": {
+          "command": [
+            "caipe",
+            "auth",
+            "status",
+            "--json"
+          ],
+          "json_field": "authenticated"
+        }
+      }
+    ]
+  },
+  {
+    "id": "terminal",
+    "title": "Terminal",
+    "description": "A persistent workspace with profile-defined tools and helpers.",
+    "agentSandbox": {
+      "spec": {
+        "podTemplate": {
+          "spec": {
+            "containers": [
+              {
+                "name": "host",
+                "image": "example/tools:v1",
+                "command": [
+                  "sleep",
+                  "infinity"
+                ],
+                "workingDir": "/home/sandbox",
+                "env": [
+                  {
+                    "name": "HOME",
+                    "value": "/home/sandbox"
+                  }
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "home",
+                    "mountPath": "/home/sandbox"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    "terminal": {
+      "command": [
+        "/bin/sh",
+        "-i"
+      ]
+    },
+    "helpers": [
+      {
+        "id": "workspace",
+        "title": "Open workspace",
+        "icon": "folder",
+        "script": "cd \"$HOME\"\nexec /bin/sh -i\n"
+      }
+    ]
+  }
+]

@@ -1,0 +1,2 @@
+.cluster-policy .policy-status>strong{color:var(--ink)}
+.cluster-policy .policy-status.pending>strong{color:var(--policy-warning)}

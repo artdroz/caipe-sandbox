@@ -1,0 +1,121 @@
+{{- $base := printf "%s-%s" .Release.Namespace .Release.Name | trunc 48 | trimSuffix "-" }}
+# Workload access is bound separately in each managed namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  name: {{ $base }}-access
+rules:
+  - apiGroups: [agents.x-k8s.io]
+    resources: [sandboxes]
+    verbs: [get, list, create, patch, delete]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [list]
+  - apiGroups: [""]
+    resources: [persistentvolumeclaims]
+    verbs: [list]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list]
+  - apiGroups: [""]
+    resources: [pods/exec]
+    verbs: [get, create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  name: {{ $base }}-bootstrap
+rules:
+  {{- $classes := without (include "agent-sandbox-portal.runtimeClasses" . | fromJsonArray) "" }}
+  {{- if $classes }}
+  - apiGroups: [node.k8s.io]
+    resources: [runtimeclasses]
+    resourceNames: {{ $classes | toJson }}
+    verbs: [get]
+  {{- end }}
+  - apiGroups: [""]
+    resources: [namespaces, serviceaccounts, resourcequotas, limitranges]
+    verbs: [get, create]
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [list]
+  {{- if .Values.namespacePolicy.deleteWhenEmpty }}
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [delete]
+  {{- end }}
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, list, create]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    resourceNames: [portal-connections]
+    verbs: [update]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    resourceNames: [sandbox-isolation]
+    verbs: [patch]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [rolebindings]
+    verbs: [get, create]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [clusterroles]
+    resourceNames: [{{ $base }}-access{{ include "agent-sandbox-portal.integrations.accessRoles" . }}]
+    verbs: [bind]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  name: {{ $base }}-bootstrap
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ $base }}-bootstrap
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  name: {{ $base }}-admin
+{{- if .Values.auth.adminEmails }}
+rules:
+  - apiGroups: [agents.x-k8s.io]
+    resources: [sandboxes]
+    verbs: [get, list, patch, delete]
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [pods/exec]
+    verbs: [get, create]
+{{- else }}
+rules: []
+{{- end }}
+{{- if .Values.auth.adminEmails }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  name: {{ $base }}-admin
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ $base }}-admin
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

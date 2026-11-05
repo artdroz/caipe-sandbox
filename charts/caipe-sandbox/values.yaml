@@ -1,0 +1,231 @@
+image:
+  repository: ""
+  digest: ""
+imagePullSecrets: []
+# Complete native Kubernetes objects. Required controllers/CRDs are operator-provided.
+extraObjects: []
+# Installation toggles; externally installed integrations remain usable when disabled.
+agentSandbox:
+  enabled: false
+omnigent:
+  enabled: false
+kata:
+  enabled: false
+# JSON container logs are collected by the cluster's existing logging agent.
+# Set an OTLP/HTTP base endpoint to enable tracing; no collector is installed here.
+observability:
+  tracing:
+    endpoint: ""
+    sampleRatio: 0.1
+# Optional native OpenShell gateway. Values below this key go to its chart.
+# Agent Sandbox and Kata can be installed here or provided by the operator.
+openShell:
+  enabled: false
+  workspaceResources:
+    enabled: false
+  server:
+    logLevel: info
+    telemetryEnabled: false
+    # Applied when an operator configures native OTLP trace export.
+    extraEnv:
+    - name: OTEL_TRACES_SAMPLER
+      value: parentbased_traceidratio
+    - name: OTEL_TRACES_SAMPLER_ARG
+      value: '0.1'
+    drivers:
+      kubernetes:
+        workspaceMode: operator
+        operatorNamespaceLabel: sandbox.caipe.io/openshell=true
+# SQLite stays single-instance. PostgreSQL supports multiple replicas, one worker per Pod.
+replicas: 1
+# Use RollingUpdate only for PostgreSQL with an already-current database schema.
+strategy:
+  type: Recreate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 1
+podDisruptionBudget:
+  enabled: true  # Applied only with multiple replicas.
+  minAvailable: 1
+# Native Pod constraints. Match the app.kubernetes.io/name label to the Helm release.
+topologySpreadConstraints: []
+# Native placement of the portal Pod; sandbox placement belongs to its profile.
+nodeSelector: {}
+affinity: {}
+tolerations: []
+# The native Pod grace period must exceed the sum of the shutdown budgets below.
+# Allow upgrade time for draining, e.g. helm upgrade --wait --timeout 10m.
+terminationGracePeriodSeconds: 240
+shutdown:
+  propagationSeconds: 10
+  drainSeconds: 180
+  serverGraceSeconds: 30
+# SQLite needs a durable block-backed volume. PostgreSQL uses an existing Secret.
+# Set url: "" when selecting existingSecret; never put credentials in values.
+database:
+  url: sqlite:////var/lib/portal/metadata.db
+  existingSecret: ""
+  secretKey: url
+  # Optional Secret with ca.crt; use sslrootcert=/etc/portal-database/ca.crt in the URL.
+  caSecret: ""
+  persistence:
+    size: 1Gi
+    storageClass: ""
+namespace:
+  strategy: perSandbox
+  # Set null (or list only perSandbox) to require a new namespace every time.
+  allowedStrategies: [perSandbox, perUser]
+  labels: {}
+  annotations: {}
+# Profiles are the complete workload setup; there is no generated fallback catalog.
+profiles:
+- id: engineering
+  title: Engineering terminal
+  description: A persistent workspace with profile-defined tools and helpers.
+  agentSandbox:
+    spec:
+      podTemplate:
+        spec:
+          containers:
+          - name: host
+            image: python:3.12-slim@sha256:cb33f7f771ecec2ef1225cf39b159591a040391bd73e4c01f00fdfc4c47611d2
+            command:
+            - sleep
+            - infinity
+            workingDir: /home/sandbox
+            env:
+            - name: HOME
+              value: /home/sandbox
+            volumeMounts:
+            - name: home
+              mountPath: /home/sandbox
+  terminal:
+    command:
+    - /bin/sh
+    - -i
+  helpers: []
+  ui:
+    resources:
+      default:
+        requests:
+          cpu: 500m
+          memory: 1Gi
+        limits:
+          cpu: '2'
+          memory: 4Gi
+        storage: 20Gi
+      minimum:
+        requests:
+          cpu: 100m
+          memory: 256Mi
+        limits:
+          cpu: 100m
+          memory: 256Mi
+        storage: 1Gi
+      maximum:
+        requests:
+          cpu: '2'
+          memory: 4Gi
+        limits:
+          cpu: '2'
+          memory: 4Gi
+        storage: 50Gi
+defaultProfile: engineering
+settings:
+  maxSandboxesPerUser: 0  # All non-deleted allocations across namespaces/providers; 0 disables the count limit.
+  terminalIoWorkers: 32  # Per portal process; separate from management/database workers.
+  reconcileIntervalSeconds: 30  # Restore supported native resources; 0 disables automatic sync.
+  operationLeaseSeconds: 120  # Renewed while a portal owns a native operation.
+  openShell:
+    endpoint: ""
+    gatewayId: ""
+    gatewayServiceAccount: ""
+    sandboxServiceAccount: ""
+    clientSecret: ""
+    storageGiB: 20
+    # Native CPU/memory requests and limits for the trusted supervisor.
+    supervisorResources: {}
+    namespaceLabel: sandbox.caipe.io/openshell
+    gatewayPodSelector:
+      app.kubernetes.io/name: openshell
+  origin: https://sandbox.example.com
+  namespacePrefix: agent
+  # Default for profiles that omit podTemplate.spec.runtimeClassName.
+  runtimeClass: ""  # Named installed class, or empty for the cluster's default runtime.
+  # Explicitly use [""] to approve the cluster default; null requires a named runtimeClass.
+  allowedRuntimeClasses: null
+  runnerServiceAccount: sandbox-runner
+  runnerImagePullSecrets: []
+  # Native sandbox Pod identity; the nonroot/security baseline remains enforced.
+  sandboxSecurityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+  storageClass: ""  # Empty uses the cluster default StorageClass.
+  basePath: /agent-sandbox-portal
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+ingress:
+  enabled: false
+  className: ""
+  host: sandbox.example.com
+  tlsSecretName: ""
+  annotations: {}
+
+# Applied before the first sandbox in each user's namespace. No sandbox-count cap.
+# Policies are create-only; changes for existing namespaces need platform reconciliation.
+namespacePolicy:
+  # Compatibility labels; prefer namespace.labels for new deployments.
+  labels: {}
+  # Remove only empty namespaces after Sandbox, Pod, Secret and PVC cleanup.
+  # Retained PVCs prevent namespace deletion; no retained data is forcibly removed.
+  deleteWhenEmpty: true
+  podSecurityVersion: latest  # Deployments can pin their reviewed Kubernetes baseline.
+  # Optional portal baseline; operator policies and native runtime isolation are separate.
+  baselineNetworkPolicy: false
+  # These egress settings apply only when the portal baseline is enabled.
+  publicHttpsEgress: true
+  quota: {}
+  extraEgress: []
+
+# Applies to each sandbox, not the portal Deployment's top-level resources.
+resourcePolicy:
+  defaults:
+    cpu_request_millicores: 500
+    cpu_limit_millicores: 2000
+    memory_request_mib: 1024
+    memory_limit_mib: 4096
+    workspace_gib: 20
+  cpu_millicores: {min: 100, max: 4000}
+  memory_mib: {min: 256, max: 8192}
+  workspace_gib: {min: 1, max: 200}
+
+# Portal authentication is independent of the selected sandbox profiles.
+auth:
+  # Operator-managed seed list. SSO restrictions still apply; never mapped from groups.
+  adminEmails: []
+  mode: oidc
+  # Used only with auth.mode: omnigent, for portal session validation.
+  omnigentUrl: ""
+  existingSecret: ""
+  clientSecretKey: client-secret
+  sessionSecretKey: session-secret
+  oidc:
+    issuer: ""
+    client_id: ""
+    scopes: openid email profile groups
+    email_claim: email
+    groups_claim: groups
+    require_verified_email: true
+    use_userinfo: false
+    allowed_email_domains: []
+    allowed_groups: []
+    role_groups: {}
+    default_role: ""
+    session_seconds: 3600

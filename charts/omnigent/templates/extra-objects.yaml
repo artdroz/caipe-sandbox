@@ -1,0 +1,13 @@
+{{- range $index, $object := .Values.extraObjects }}
+{{- if not (kindIs "map" $object) }}
+{{- fail (printf "extraObjects[%d] must be a Kubernetes object" $index) }}
+{{- end }}
+{{- $_ := required (printf "extraObjects[%d].apiVersion is required" $index) $object.apiVersion }}
+{{- $_ := required (printf "extraObjects[%d].kind is required" $index) $object.kind }}
+{{- if not (kindIs "map" $object.metadata) }}
+{{- fail (printf "extraObjects[%d].metadata must be an object" $index) }}
+{{- end }}
+{{- $_ := required (printf "extraObjects[%d].metadata.name is required" $index) $object.metadata.name }}
+---
+{{ toYaml $object }}
+{{- end }}

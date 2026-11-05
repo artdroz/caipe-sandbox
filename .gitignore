@@ -1,0 +1,16 @@
+node_modules/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+docs/.docusaurus*/
+docs/build/
+apps/portal/portal/static/portal.js
+apps/portal/portal/static/portal.css
+apps/portal/portal/static/licenses.txt
+apps/portal/build/
+security-reports/
+dist/

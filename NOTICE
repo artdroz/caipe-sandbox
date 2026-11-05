@@ -1,0 +1,17 @@
+CAIPE Sandbox
+
+The initial portal and packaging export is based on reference implementation
+snapshot 21366865181413e03a642b46a7f56559b320ec4b (5 November 2026).
+It excludes the prototype demonstration site, PoC extensions, private workload
+image and deployment-specific configuration. Existing documentation has been
+preserved from the supplied OSS checkout.
+
+The Agent Sandbox CRD and controller deployment definitions derive from
+Kubernetes SIGs Agent Sandbox v1.0.5 (Apache License 2.0).
+See charts/agent-sandbox/UPSTREAM-LICENSE.
+
+OpenShell and Kata charts come from their upstream OCI releases and remain
+subject to the licenses in NVIDIA/OpenShell and kata-containers/kata-containers.
+Browser dependencies' licenses are emitted into
+portal/static/licenses.txt during the build. Integration logos remain subject
+to their respective owners' trademark policies.

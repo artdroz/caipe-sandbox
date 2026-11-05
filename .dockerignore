@@ -1,0 +1,15 @@
+**
+!apps/
+!apps/portal/
+!apps/portal/**
+!packages/
+!packages/common-tools/
+!packages/common-tools/**
+!charts/
+!charts/**
+apps/portal/node_modules/
+apps/portal/.venv/
+apps/portal/*.egg-info/
+**/__pycache__/
+**/.pytest_cache/
+apps/portal/build/

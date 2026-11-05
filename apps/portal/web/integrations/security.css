@@ -1,0 +1,24 @@
+.security-section{border-top:1px solid var(--line);margin-top:10px}
+.security-section>summary{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:18px 0;cursor:pointer;list-style-position:inside}
+.security-section>summary>span:first-child{display:flex;gap:8px;align-items:center;font-size:15px}
+.security-section>summary>span:first-child::before{content:"›";color:var(--muted);font-size:18px}
+.security-section[open]>summary>span:first-child::before{transform:rotate(90deg)}
+.security-powered{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:11px;white-space:nowrap;font-weight:400}
+.security-powered .icon{width:18px;height:18px}
+.security-section>[data-security-slot]{padding:0 0 18px 20px;min-width:0}
+.security-section .policy-status{font-size:12px}
+.security-section .policy-section-heading h3{font-size:12px;font-weight:500}
+.security-section .policy-section-heading .hint{font-size:12px}
+.security-section .policy-panel{gap:12px}
+.security-section .policy-panel>.hint{margin:0}
+.security-advanced{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.security-advanced>summary{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:12px 0;cursor:pointer}
+.security-advanced>summary>span{margin-left:auto;font-size:11px}
+.security-native .policy-reference{border:0;margin-top:0;padding-top:6px}
+.security-native .policy-reference>p{margin-top:12px}
+.security-facts{margin:12px 0 0}
+.security-facts>div{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,2fr);gap:16px;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}
+.security-facts dt{color:var(--muted)}.security-facts dd{margin:0;overflow-wrap:anywhere}
+.cluster-fields{display:grid;grid-template-columns:minmax(0,2fr) minmax(64px,.6fr) minmax(0,1fr);gap:10px}
+.cluster-fields>.network-field:last-child{grid-column:1/-1}
+@media(max-width:600px){.security-section>summary{flex-wrap:wrap;gap:6px}.security-powered{margin-left:20px;flex-basis:100%}.security-section>[data-security-slot]{padding-left:0}.cluster-fields{grid-template-columns:minmax(0,1fr) 64px}.cluster-fields>.network-field:nth-child(3){grid-column:1/-1}.security-facts>div{grid-template-columns:1fr;gap:4px}.security-advanced>summary{flex-wrap:wrap}.security-advanced>summary>span{margin-left:0;flex-basis:100%}}

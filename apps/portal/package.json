@@ -1,0 +1,20 @@
+{
+  "name": "agent-sandbox-portal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22.9", "npm": ">=11.11.0"},
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test web/tests/*.test.js"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": ">=0.10.0 <0.11",
+    "@xterm/addon-search": ">=0.15.0 <0.16",
+    "@xterm/xterm": ">=5.5.0 <6",
+    "diff": ">=9.0.0 <10"
+  },
+  "devDependencies": {
+    "esbuild": ">=0.25.0 <0.26"
+  }
+}

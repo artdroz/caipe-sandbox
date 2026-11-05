@@ -1,0 +1,10 @@
+.openshell-creation{display:grid;gap:10px;min-width:0}
+.openshell-creation .hint{margin:0;font-size:11px;line-height:1.5}
+.openshell-creation label{margin:0;display:flex;flex-direction:column;gap:5px;font-size:11px}
+.openshell-creation .check-label{flex-direction:row;align-items:center}
+.openshell-creation .check-label input{width:auto;min-height:0;margin:0}
+.openshell-creation input,.openshell-creation select,.openshell-creation textarea{width:100%;min-width:0;margin:0;font-size:12px;padding:7px 8px;background:var(--inset);color:var(--ink)}
+.openshell-creation textarea{resize:vertical;font-family:var(--mono);line-height:1.5}
+.openshell-creation .policy-editor{min-height:200px}
+.openshell-startup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media(max-width:480px){.openshell-startup-grid{grid-template-columns:minmax(0,1fr)}}

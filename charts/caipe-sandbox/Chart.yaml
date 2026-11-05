@@ -1,0 +1,30 @@
+apiVersion: v2
+name: caipe-sandbox
+description: Sandbox portal with optional runtime and service integrations
+version: 0.7.0
+appVersion: 0.7.0
+type: application
+kubeVersion: ">=1.30.0-0"
+dependencies:
+  - name: agent-sandbox
+    alias: agentSandbox
+    version: 1.0.5-3
+    repository: file://../agent-sandbox
+    condition: agentSandbox.enabled
+  - name: helm-chart
+    alias: openShell
+    version: 0.1.6
+    repository: oci://ghcr.io/nvidia/openshell
+    condition: openShell.enabled
+  - name: omnigent
+    version: 0.3.0
+    repository: file://../omnigent
+    condition: omnigent.enabled
+  - name: kata-deploy
+    alias: kata
+    version: 4.2.0
+    repository: oci://ghcr.io/kata-containers/kata-deploy-charts
+    condition: kata.enabled
+home: https://github.com/caipe-io/caipe-sandbox
+sources:
+  - https://github.com/caipe-io/caipe-sandbox

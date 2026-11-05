@@ -1,0 +1,18 @@
+case $- in *i*) ;; *) return ;; esac
+export PATH="$HOME/.local/bin:/opt/venv/bin:$PATH"
+export NPM_CONFIG_PREFIX="$HOME/.local"
+export EDITOR=nano
+export LESS=-R
+HISTCONTROL=ignoreboth
+HISTSIZE=5000
+HISTFILESIZE=10000
+shopt -s histappend checkwinsize
+PROMPT_COMMAND='history -a; history -n'
+PS1='\[\e[38;5;78m\]\u\[\e[0m\]@\[\e[38;5;110m\]\h\[\e[0m\] \[\e[38;5;179m\]\w\[\e[0m\]\n\[\e[38;5;78m\]\$\[\e[0m\] '
+if command -v dircolors >/dev/null; then eval "$(dircolors -b)"; fi
+alias ls='ls --color=auto'
+alias ll='ls -alh --color=auto'
+alias grep='grep --color=auto'
+if [ -r /usr/share/bash-completion/bash_completion ]; then
+  . /usr/share/bash-completion/bash_completion
+fi
