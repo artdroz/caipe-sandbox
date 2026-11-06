@@ -145,7 +145,7 @@ function renderSessions() {
     const state = session.retry ? "error" : session.connection?.shellReady ? "running" : "provisioning";
     return `<div class="session-row ${selected ? "selected" : ""}${session.restartNotice ? " session-draining" : ""}"><button class="session-open" type="button" data-session="${esc(session.key)}" aria-label="Open session: ${esc(session.title)} · Shell ${session.number}" ${selected ? 'aria-current="true"' : ""}><span class="session-name" title="${esc(session.title)} · Shell ${session.number}">${icon("terminal")}<span class="session-title">${esc(session.title)} · Shell ${session.number}</span></span><span class="session-state"><i class="led ${state}"></i>${esc(session.status)}</span></button>${restartWarning(session.restartNotice, session.key)}<button class="session-end icon-button" type="button" data-end-session="${esc(session.key)}" aria-label="Terminate session: ${esc(session.title)} · Shell ${session.number}" title="Terminate session">${icon("close")}</button></div>`;
   }).join("");
-  const content = `<div class="session-heading">${icon("terminal")}SESSIONS <span>${terminalSessions.size}</span></div><div class="session-list">${rows}</div>`;
+  const content = `<div class="session-heading">${icon("terminal")}SESSIONS <span>${terminalSessions.size}</span></div><div class="session-list">${rows}</div><button class="secondary action-delete session-close-all" type="button" data-end-all-sessions aria-label="Close all terminal sessions" title="Terminate every shell in this tab">${icon("close")}Close all sessions</button>`;
   for (const id of ["session-sidebar", "terminal-session-sidebar"]) {
     const rail = byId(id);
     rail.hidden = !terminalSessions.size || (id === "session-sidebar" && open);
@@ -229,7 +229,7 @@ function closeTerminalDrawer(immediate = false) {
     panel.close(); renderSessions(); return;
   }
   if (terminalExit) return;
-  const animation = panel.animate([{transform:"translateY(0)"},{transform:"translateY(100%)"}], {duration:160,easing:"ease-in",fill:"forwards"});
+  const animation = panel.animate([{clipPath:"inset(0)",opacity:1},{clipPath:"inset(100% 0 0)",opacity:0}], {duration:120,easing:"ease-in",fill:"forwards"});
   terminalExit = animation;
   animation.finished.then(() => {
     if (terminalExit !== animation) return;
@@ -317,6 +317,10 @@ function openTerminal(id, namespace = null, command = null, {newSession = false,
   if (session.connection.shellReady) session.terminal.focus();
 }
 function handleSessionAction(event) {
+  if (event.target.closest("[data-end-all-sessions]")) {
+    if (confirm(`Close all ${terminalSessions.size} terminal sessions?\n\nThis terminates every shell in this tab. Your micro VMs keep running.`)) closeAllTerminals();
+    return;
+  }
   const end = event.target.closest("[data-end-session]");
   if (end) { requestTermination(end.dataset.endSession); return; }
   const button = event.target.closest("[data-session]");
