@@ -118,12 +118,14 @@ def test_http_proxy_then_direct_terminal(prefix, monkeypatch):
         assert page.status_code == 200
         assert len(page.history) == (1 if prefix else 0)
         assert str(page.url).startswith(proxy + "/")
-        for pattern in (
-            r'<script[^>]+src="([^"]+)"',
-            r'<link[^>]+href="([^"]+portal\.css[^"]*)"',
+        for pattern, filename in (
+            (r'<script[^>]+src="([^"]+)"', "portal.js"),
+            (r'<link[^>]+href="([^"]+portal\.css[^"]*)"', "portal.css"),
         ):
             asset = re.search(pattern, page.text).group(1)
-            assert httpx.get(page.url.join(asset)).status_code == 200
+            assert page.url.join(asset).path == prefix + "/assets/" + filename
+        logo = re.search(r'<link rel="icon"[^>]+href="([^"]+)"', page.text).group(1)
+        assert httpx.get(page.url.join(logo)).status_code == 200
         assert httpx.get(upstream + prefix + "/api/sandboxes").status_code == 401
         result = httpx.post(
             proxy + path + "-credentials", headers={"Origin": settings.origin}
