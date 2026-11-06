@@ -92,7 +92,6 @@ def test_terminal_reports_server_timeout_with_log_id(setup, monkeypatch, caplog,
 
 
 def test_terminal_sanitizes_exec_api_error(setup, monkeypatch):
-
     browser, store, _, _ = setup
     name = store.create(OWNER).reference["metadata"]["name"]
     monkeypatch.setattr(
@@ -111,7 +110,6 @@ def test_terminal_sanitizes_exec_api_error(setup, monkeypatch):
 def test_two_terminals_for_one_sandbox_have_independent_exec_connections(
     setup, monkeypatch
 ):
-
     browser, store, _, _ = setup
     name = store.create(OWNER).reference["metadata"]["name"]
     first_closed, second_closed = threading.Event(), threading.Event()
@@ -122,6 +120,7 @@ def test_two_terminals_for_one_sandbox_have_independent_exec_connections(
         conn.is_open.side_effect = lambda: not closed.is_set()
         conn.update.side_effect = lambda **kwargs: closed.wait(0.01)
         conn.read_all.return_value = ""
+        conn.read_channel.return_value = ""
         conn.write_stdin.side_effect = lambda data: received.set()
         conn.close.side_effect = closed.set
         return conn

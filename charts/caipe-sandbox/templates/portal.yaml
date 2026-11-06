@@ -154,6 +154,8 @@ spec:
               value: /etc/portal-profiles/profiles.json
             - name: PORTAL_ORIGIN
               value: {{ .Values.settings.origin | quote }}
+            - name: PORTAL_HEADER_LINKS
+              value: {{ .Values.settings.headerLinks | toJson | quote }}
             - name: PORTAL_NAMESPACE_PREFIX
               value: {{ .Values.settings.namespacePrefix | quote }}
             - name: PORTAL_PORTAL_NAMESPACE

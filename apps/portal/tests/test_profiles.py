@@ -546,6 +546,9 @@ def test_helper_scripts_are_retained_and_server_resolved(monkeypatch):
         def read_all(self):
             return ""
 
+        def read_channel(self, channel):
+            return ""
+
         def close(self):
             self.opened = False
 

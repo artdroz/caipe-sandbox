@@ -654,6 +654,17 @@
       "pattern": "^[a-z][a-z0-9-]{0,39}$"
     },
     {
+      "path": "settings.headerLinks",
+      "type": "array",
+      "default": [
+        {
+          "title": "Docs",
+          "url": "https://upgraded-adventure-w96874e.pages.github.io/"
+        }
+      ],
+      "maxItems": 3
+    },
+    {
       "path": "settings.maxSandboxesPerUser",
       "type": "integer",
       "default": 0,
@@ -1124,6 +1135,11 @@
       "path": "PORTAL_ORIGIN",
       "type": "str",
       "default": "http://127.0.0.1:4193"
+    },
+    {
+      "path": "PORTAL_HEADER_LINKS",
+      "type": "str",
+      "default": "[{\"title\":\"Docs\",\"url\":\"https://upgraded-adventure-w96874e.pages.github.io/\"}]"
     },
     {
       "path": "PORTAL_AUTH_OMNIGENT_URL",

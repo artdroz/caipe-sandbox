@@ -21,4 +21,24 @@ and sandbox resources are separate. Optional subcharts accept additional native
 values defined by their own charts; this reference covers the main chart's
 declared settings.
 
+### Header links
+
+Set `settings.headerLinks` to show up to three links in the top-right bar,
+including when embedded in CAIPE. Links open in a new tab so terminal sessions
+stay open. Only Docs is configured by default; use `[]` to hide all links.
+
+```yaml
+settings:
+  headerLinks:
+  - title: Docs
+    url: https://upgraded-adventure-w96874e.pages.github.io/
+  - title: Support
+    url: https://example.com/support
+  - title: Status
+    url: https://example.com/status
+```
+
+For a direct container deployment, use `PORTAL_HEADER_LINKS` with the same list
+encoded as JSON. Titles are limited to 40 characters and URLs must be HTTP(S).
+
 <ConfigurationReference key="deployment" scope="deployment" />

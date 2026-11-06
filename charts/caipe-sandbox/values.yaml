@@ -132,6 +132,10 @@ profiles:
         storage: 50Gi
 defaultProfile: engineering
 settings:
+  # Up to three links in the top-right bar. Use [] to hide all links.
+  headerLinks:
+  - title: Docs
+    url: https://upgraded-adventure-w96874e.pages.github.io/
   maxSandboxesPerUser: 0  # All non-deleted allocations across namespaces/providers; 0 disables the count limit.
   terminalIoWorkers: 32  # Per portal process; separate from management/database workers.
   reconcileIntervalSeconds: 30  # Restore supported native resources; 0 disables automatic sync.

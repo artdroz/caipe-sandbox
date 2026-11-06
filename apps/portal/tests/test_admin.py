@@ -288,6 +288,9 @@ def test_admin_terminal_exec_target_and_revocation(admin_setup, monkeypatch):
             result, self.text = self.text, ""
             return result
 
+        def read_channel(self, channel):
+            return ""
+
         def close(self):
             self.opened = False
 

@@ -122,6 +122,7 @@ def test_caipe_authentication_keeps_sandbox_authorization(hosted):
     assert browser.get(CAIPE.base_path + "/auth/config").json() == {
         "mode": "caipe",
         "login_url": None,
+        "header_links": json.loads(CAIPE.header_links),
         "terminal_credentials": True,
         "terminal_url": CAIPE.terminal_url,
         "embedded": True,
