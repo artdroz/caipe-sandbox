@@ -4,7 +4,17 @@ import json
 import os
 import re
 from dataclasses import dataclass, field
+from typing import Annotated
 from urllib.parse import urlsplit
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    StringConstraints,
+    TypeAdapter,
+)
 
 from .resources import DEFAULT_POLICY
 from .resources import policy as resource_policy
@@ -24,6 +34,9 @@ class Settings:
     drain_seconds: int = 180
     drain_propagation_seconds: int = 10
     origin: str = "http://127.0.0.1:4193"
+    header_links: str = (
+        '[{"title":"Docs","url":"https://upgraded-adventure-w96874e.pages.github.io/"}]'
+    )
     auth_omnigent_url: str = ""
     namespace_prefix: str = "agent"
     namespace: str = '{"strategy":"perSandbox","allowedStrategies":["perSandbox","perUser"],"labels":{},"annotations":{}}'
@@ -154,6 +167,7 @@ class Settings:
         from .profiles import Profiles
 
         namespace_config(settings)
+        header_links(settings)
         Profiles(settings)
         runner_pull_secrets(settings)
         resource_policy(settings)
@@ -161,6 +175,21 @@ class Settings:
 
         Authentication(settings)
         return settings
+
+
+class HeaderLink(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)
+    ]
+    url: HttpUrl
+
+
+def header_links(settings):
+    links = TypeAdapter(Annotated[list[HeaderLink], Field(max_length=3)]).validate_json(
+        settings.header_links
+    )
+    return [link.model_dump(mode="json") for link in links]
 
 
 def runtime_classes(settings):

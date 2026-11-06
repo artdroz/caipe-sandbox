@@ -118,6 +118,17 @@ export const groups = [
     "New requests are validated against current controls; reducing a limit does not resize existing sandboxes.",
   ),
   group(
+    "platform-header-links",
+    "deployment",
+    "Portal header links",
+    /^settings\.headerLinks$/,
+    "Platform operator",
+    ["helm", "portal"],
+    "The chart and portal validate up to three title/HTTP(S) URL pairs.",
+    "Deployment-managed links, shown in standalone and embedded views. An empty list hides them.",
+    "Updated on portal rollout; links open in a new tab without closing terminal sessions.",
+  ),
+  group(
     "platform-operations",
     "deployment",
     "Portal limits & workers",
@@ -320,6 +331,8 @@ const notes = {
     "Complete offered catalog. No generated fallback catalog. Its profile-level fields are explored in the Profile fields tab.",
   defaultProfile:
     "ID of a seeded profile to preselect. Startup rejects an ID missing from the catalog.",
+  "settings.headerLinks":
+    "Up to three title/HTTP(S) URL pairs in the top-right bar. Docs is enabled by default. Links open in a new tab, and [] hides the links.",
   "settings.runtimeClass":
     "Default installed RuntimeClass when a profile omits its native runtime field. An empty string means the cluster default runtime, not Kata.",
   "settings.allowedRuntimeClasses":
@@ -543,6 +556,7 @@ const envValues = {
   TERMINAL_IO_WORKERS: "settings.terminalIoWorkers",
   RECONCILE_INTERVAL_SECONDS: "settings.reconcileIntervalSeconds",
   MAX_SANDBOXES_PER_USER: "settings.maxSandboxesPerUser",
+  HEADER_LINKS: "settings.headerLinks",
   DRAIN_FILE: "Helm fixes the writable drain marker at /var/run/portal/drain",
   DRAIN_SECONDS: "shutdown.drainSeconds",
   DRAIN_PROPAGATION_SECONDS: "shutdown.propagationSeconds",

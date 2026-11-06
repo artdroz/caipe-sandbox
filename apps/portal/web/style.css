@@ -54,6 +54,10 @@ main { margin: 0 auto; padding: 0 24px 16px; max-width: 1600px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 0; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
 .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink); font-size: 15px; font-weight: 650; white-space: nowrap; }
 .brand-logo { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
+.topbar-right { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-left: auto; flex-wrap: wrap; }
+.header-links { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+.header-links a { font-size: 12px; font-weight: 550; text-decoration: none; }
+.header-links a:hover { text-decoration: underline; }
 .account { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .avatar { width: 30px; height: 30px; background: var(--inset); color: var(--accent); border: 1px solid var(--line); border-radius: 5px; display: grid; place-items: center; flex-shrink: 0; font: 10px var(--mono); }
 .account-info { min-width: 0; }
@@ -651,6 +655,6 @@ button.secondary.action-delete, .ws-process-strip button[data-workspace-action="
 
 /* CAIPE supplies the application shell and account controls. */
 body.embedded .topbar>.brand,body.embedded .account{display:none}
-body.embedded .topbar:has(.view-tabs[hidden]){display:none}
+body.embedded .topbar:has(.view-tabs[hidden]):has(#header-links[hidden]){display:none}
 body.embedded .topbar{justify-content:flex-start;margin-bottom:16px}
 body.embedded main{padding-top:16px}

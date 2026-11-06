@@ -438,6 +438,7 @@ def test_root_portal_is_independent_of_workload_integrations():
         assert browser.get("/auth/config").json() == {
             "mode": "oidc",
             "login_url": "/auth/login",
+            "header_links": json.loads(SETTINGS.header_links),
         }
         assert browser.get("/api/sandboxes").status_code == 401
         result = browser.get("/auth/login", follow_redirects=False)

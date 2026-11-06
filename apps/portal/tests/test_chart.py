@@ -50,6 +50,22 @@ def render(tmp_path, settings, profiles=None, *, release="portal", **overrides):
     )
 
 
+@pytest.mark.parametrize(
+    "links", [[], [{"title": "Support", "url": "https://example.com/help"}]]
+)
+def test_header_links_reach_portal_environment(tmp_path, links):
+    result = render(tmp_path, {"headerLinks": links})
+    assert result.returncode == 0, result.stderr
+    deployment = next(
+        o for o in yaml.safe_load_all(result.stdout) if o and o["kind"] == "Deployment"
+    )
+    env = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
+    assert (
+        json.loads(next(e["value"] for e in env if e["name"] == "PORTAL_HEADER_LINKS"))
+        == links
+    )
+
+
 def test_caipe_auth_uses_secret_references_and_preserves_subpaths(tmp_path):
     result = render(
         tmp_path,

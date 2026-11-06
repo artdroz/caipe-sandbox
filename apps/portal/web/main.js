@@ -1091,7 +1091,7 @@ setInterval(async () => {
   if (!signedIn) return;
   await refresh();
 }, 4000);
-window.addEventListener("beforeunload", closeAllTerminals);
+window.addEventListener("pagehide", closeAllTerminals);
 async function start() {
   try {
     const response = await fetch(base + "/auth/config", {credentials: "same-origin"});
@@ -1101,6 +1101,14 @@ async function start() {
     }
     if (!response.ok) throw new Error("Portal login configuration is unavailable");
     const auth = authConfig = await response.json();
+    const links = byId("header-links");
+    links.replaceChildren(...(auth.header_links || []).map(({title, url}) => {
+      const link = document.createElement("a");
+      link.textContent = title; link.href = url;
+      link.target = "_blank"; link.rel = "noopener noreferrer";
+      return link;
+    }));
+    links.hidden = !links.childElementCount;
     document.body.classList.toggle("embedded", Boolean(auth.embedded));
     if (auth.login_url) {
       const login = new URL(auth.login_url, location.origin);

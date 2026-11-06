@@ -29,7 +29,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from websocket import WebSocketException
 
 from .auth import COOKIE, Authentication
-from .config import Settings
+from .config import Settings, header_links
 from .controls import (
     GlobalUpdate,
     NamespaceControl,
@@ -120,6 +120,7 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
     ).parsed_url()
     auth = Authentication(settings)
     profiles = Profiles(settings)
+    links = header_links(settings)
     placement = namespace_config(settings)
     drain = Drain(settings.drain_file)
     telemetry = Tracing()
@@ -348,6 +349,7 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
         return {
             "mode": settings.auth_mode,
             "login_url": auth.login_url,
+            "header_links": links,
             **(
                 {
                     "terminal_credentials": True,
