@@ -12,7 +12,7 @@ dependencies = [
   "Authlib>=1.9.1,<2", "itsdangerous>=2.2,<3",
   "pydantic>=2.9,<3", "joserfc>=1.7.7,<2", "websocket-client>=1.9,<2",
   "certifi>=2026.10.19",
-  "oauthlib>=4,<5",
+  "oauthlib>=4.0.1,<5",
   "openshell>=0.1.6,<0.1.7",
   "msgpack>=1.2.3,<2",
   "opentelemetry-sdk>=1.45.1,<2", "opentelemetry-exporter-otlp-proto-http>=1.45.1,<2",
@@ -28,38 +28,13 @@ security = ["pip-audit>=2.10.1,<3", "filelock>=4.2.1,<5"]
 
 [tool.uv]
 required-version = ">=0.12.17"
-exclude-newer = "30 days"
+exclude-newer = "7 days"
 default-groups = []
 constraint-dependencies = ["pyasn1>=0.6.5", "opentelemetry-api>=1.45.1"]
 
 [tool.uv.exclude-newer-package]
-# Remove after 2026-11-06, when the upstream tracestate parsing fix is over 30 days old.
-opentelemetry-api = "2026-10-07T00:00:00Z"
-opentelemetry-sdk = "2026-10-07T00:00:00Z"
-opentelemetry-exporter-otlp-proto-http = "2026-10-07T00:00:00Z"
-opentelemetry-exporter-otlp-proto-common = "2026-10-07T00:00:00Z"
-opentelemetry-proto = "2026-10-07T00:00:00Z"
-opentelemetry-semantic-conventions = "2026-10-07T00:00:00Z"
-opentelemetry-exporter-otlp-common = "2026-10-07T00:00:00Z"
-opentelemetry-exporter-http-transport = "2026-10-07T00:00:00Z"
-# Remove after 2026-11-14, when the verified OAuth/JOSE fixes have aged 30 days.
-authlib = "2026-10-15T00:00:00Z"
-# Remove after 2026-11-18, when the verified JOSE security fixes have aged 30 days.
-joserfc = "2026-10-20T00:00:00Z"
-# Remove after 2026-11-26, when the ASN.1 decoder security fixes have aged 30 days.
-pyasn1 = "2026-10-28T00:00:00Z"
-# Remove after 2026-10-30, when the verified parser memory-safety fix has aged 30 days.
-msgpack = "2026-09-30T00:00:00Z"
-# Approved gateway/SDK compatibility exception; remove after 2026-11-27.
-openshell = "2026-10-29T00:00:00Z"
-# Remove after 2026-11-19, when the verified certificate-bundle fix has aged 30 days.
-certifi = "2026-10-21T00:00:00Z"
-# Remove after 2026-10-28, when the verified PKCE fix has aged 30 days.
-oauthlib = "2026-09-29T00:00:00Z"
-# Remove after 2026-11-16, when the verified file-lock security fixes have aged 30 days.
-filelock = "2026-10-18T00:00:00Z"
-# Remove after 2026-11-18, when the verified wheel-installation fix has aged 30 days.
-setuptools = "2026-10-19T20:12:00Z"
+# Remove after 2026-11-07, when the device-code validation fix has aged 7 days.
+oauthlib = "2026-11-01T00:00:00Z"
 
 [tool.setuptools.package-data]
 portal = ["static/*", "storage/migrations/*.py", "storage/migrations/versions/*.py"]
