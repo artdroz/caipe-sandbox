@@ -379,6 +379,9 @@ def test_live_user_terminal_is_closed_after_access_check_fails(
             result, self.text = self.text, ""
             return result
 
+        def read_channel(self, channel):
+            return ""
+
         def close(self):
             self.opened = False
 

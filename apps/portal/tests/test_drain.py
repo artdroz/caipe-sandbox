@@ -43,6 +43,21 @@ class Stream:
     def read_all(self):
         return ""
 
+    def read_channel(self, channel):
+        assert channel == 3
+        if self.is_open() or self.returncode is None:
+            return ""
+        status = (
+            {"status": "Success"}
+            if self.returncode == 0
+            else {
+                "details": {
+                    "causes": [{"reason": "ExitCode", "message": str(self.returncode)}]
+                }
+            }
+        )
+        return json.dumps(status)
+
     def write_stdin(self, data):
         self.received.set()
         if self.audit:

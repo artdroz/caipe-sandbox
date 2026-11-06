@@ -176,6 +176,9 @@ def test_revoking_shell_share_closes_an_existing_terminal(setup, monkeypatch):
             value, self.prompt = self.prompt, ""
             return value
 
+        def read_channel(self, channel):
+            return ""
+
         def close(self):
             self.opened = False
             closed.set()

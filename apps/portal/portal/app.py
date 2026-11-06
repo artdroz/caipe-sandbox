@@ -1232,10 +1232,13 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
                 )
             stage = "stream"
 
+            def poll_output():
+                conn.update(timeout=0.02)
+                return conn.read_all()
+
             async def output():
                 while conn.is_open():
-                    await app.state.terminal_io.run(conn.update, timeout=0.02)
-                    text = conn.read_all()
+                    text = await app.state.terminal_io.run(poll_output)
                     if text:
                         await ws.send_text(text)
                     await asyncio.sleep(0 if text else 0.01)

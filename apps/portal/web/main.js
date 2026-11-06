@@ -6,6 +6,7 @@ import "./style.css";
 import { icon } from "./icons.js";
 import { TerminalConnection } from "./terminal-connection.js";
 import { TerminalSessions } from "./terminal-sessions.js";
+import { TerminalNavigationGuard } from "./navigation-guard.js";
 import { RestartNotifications } from "./restart-notifications.js";
 import { restartWarning } from "./restart-warning.js";
 import { terminalText, terminalFilename } from "./terminal-output.js";
@@ -18,7 +19,7 @@ import { openWorkspace } from "./workspace-view.js";
 import { runtimeError, runtimeStatus, copyRuntimeError, failedCreation, deletionConfirmation } from "./error-view.js";
 import { cardLayout } from "./card-layout.js";
 import { namespaceOptions, namespaceLockBadge } from "./namespace-view.js";
-import { openIntegrationPanel, openSecurityPanel, mountIntegrationCreation } from "./integrations/index.js";
+import { openIntegrationPanel, openSecurityPanel, mountIntegrationCreation, HostedNavigationGuard } from "./integrations/index.js";
 import { copyJson } from "./json-view.js";
 import { sandboxMetadata } from "./timestamps.js";
 
@@ -68,6 +69,8 @@ let adminControls, editingControls, editingSandbox, editingUser, globalAnnouncem
 const selectedSandboxes = new Set();
 let loginUrl = base + "/auth/login";
 let authConfig = {};
+const hostedNavigationGuard = new HostedNavigationGuard();
+const terminalNavigationGuard = new TerminalNavigationGuard(state => hostedNavigationGuard.update(authConfig, state));
 let signedIn = false;
 function showSignin(message = "") {
   message ||= authConfig.login_message || "";
@@ -135,6 +138,7 @@ function error(err) {
   const box = byId(byId("create-dialog").open ? "create-error" : "error"); box.hidden = false; box.textContent = err.message;
 }
 function renderSessions() {
+  terminalNavigationGuard.update([...terminalSessions.values()].filter(session => session.connection && !session.retry && !session.connection.closed).length);
   const open = byId("terminal-panel").open;
   const rows = [...terminalSessions.values()].map(session => {
     const selected = open && activeSession === session.key;
@@ -149,7 +153,14 @@ function renderSessions() {
       const focusedWarning = rail.contains(document.activeElement) ? document.activeElement.dataset.restartKey : null;
       rail.innerHTML = content;
       if (focusedWarning) rail.querySelector(`[data-restart-key="${CSS.escape(focusedWarning)}"]`)?.focus({preventScroll:true});
-      if (!rail.hidden) rail.querySelector('[aria-current="true"]')?.scrollIntoView({block:"nearest",inline:"nearest"});
+      if (!rail.hidden) {
+        const list = rail.querySelector(".session-list"), selected = rail.querySelector('[aria-current="true"]');
+        if (list && selected) {
+          const view = list.getBoundingClientRect(), tab = selected.getBoundingClientRect();
+          // Keep scrolling inside the tab strip, including when embedded in another app.
+          list.scrollLeft += tab.left < view.left ? tab.left - view.left : Math.max(0, tab.right - view.right);
+        }
+      }
     }
   }
   byId("app-main").classList.toggle("has-sessions", terminalSessions.size > 0);

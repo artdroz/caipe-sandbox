@@ -1,3 +1,5 @@
+import json
+from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -6,7 +8,7 @@ from execution_fakes import target as fake_target
 from fastapi import HTTPException
 
 from portal.execution import connect
-from portal.integrations.agent_sandbox.execution import target
+from portal.integrations.agent_sandbox.execution import Execution, target
 
 
 def test_provider_target_needs_no_kubernetes_object(monkeypatch):
@@ -59,8 +61,48 @@ def test_kubernetes_transport_keeps_verified_target_and_supported_exec_arguments
     stream = Mock()
     factory = Mock(return_value=stream)
     monkeypatch.setattr(ws_client, "WSClient", factory)
-    assert connect(resolved, ["/bin/sh"], stdin=False) is stream
+    assert connect(resolved, ["/bin/sh"], stdin=False).connection is stream
     assert factory.call_count == 1
     url = factory.call_args.args[1]
     assert "/namespaces/ns/pods/sandbox/exec?" in url
     assert "command=%2Fbin%2Fsh" in url and "container=host" in url
+
+
+@pytest.mark.parametrize("exit_code", [0, 7])
+@pytest.mark.parametrize("combined", [True, False])
+def test_native_output_reads_preserve_exit_status(exit_code, combined):
+    from kubernetes.stream.ws_client import ERROR_CHANNEL, WSClient
+
+    native = WSClient.__new__(WSClient)
+    native._connected = False
+    native._returncode = None
+    native._all = StringIO("last output\n")
+    native._channels = {
+        ERROR_CHANNEL: json.dumps(
+            {"status": "Success"}
+            if exit_code == 0
+            else {
+                "status": "Failure",
+                "details": {
+                    "causes": [{"reason": "ExitCode", "message": str(exit_code)}]
+                },
+            }
+        ),
+        1: "last output\n",
+    }
+    execution = Execution(native)
+    if combined:
+        assert execution.read_all() == "last output\n"
+    else:
+        assert execution.read_stdout() == "last output\n"
+    assert execution.returncode == exit_code
+    assert execution.returncode == exit_code
+
+
+def test_native_disconnect_without_exit_status_does_not_report_success():
+    from kubernetes.stream.ws_client import WSClient
+
+    native = WSClient.__new__(WSClient)
+    native._connected = False
+    native._channels = {}
+    assert Execution(native).returncode is None

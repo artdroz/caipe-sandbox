@@ -1,12 +1,45 @@
 """Bind Kubernetes exec to a verified Agent Sandbox Pod."""
 
+import json
 import logging
 
 from fastapi import HTTPException
 from kubernetes import client
 from kubernetes.stream import stream
+from kubernetes.stream.ws_client import ERROR_CHANNEL
 
 from ...execution import ExecutionTarget
+
+
+class Execution:
+    def __init__(self, connection):
+        self.connection = connection
+        self.status = {}
+
+    def __getattr__(self, name):
+        return getattr(self.connection, name)
+
+    def _read_status(self):
+        status = self.connection.read_channel(ERROR_CHANNEL)
+        if status:
+            self.status = json.loads(status)
+
+    def read_all(self):
+        # WSClient.read_all() clears the exit-status channel along with output.
+        self._read_status()
+        return self.connection.read_all()
+
+    @property
+    def returncode(self):
+        if self.connection.is_open():
+            return None
+        self._read_status()
+        if self.status.get("status") == "Success":
+            return 0
+        for cause in self.status.get("details", {}).get("causes", []):
+            if cause.get("reason") == "ExitCode":
+                return int(cause["message"])
+        return None
 
 
 def target(resource, core, *, admin=False):
@@ -30,7 +63,7 @@ def target(resource, core, *, admin=False):
         try:
             with client.ApiClient() as api:
                 executor = client.CoreV1Api(api)
-                return stream(
+                connection = stream(
                     executor.connect_get_namespaced_pod_exec,
                     name,
                     namespace,
@@ -43,6 +76,7 @@ def target(resource, core, *, admin=False):
                     _preload_content=False,
                     _request_timeout=timeout,
                 )
+                return Execution(connection)
         except client.ApiException as exc:
             logging.getLogger(__name__).warning(
                 "sandbox_exec_unavailable status=%s", exc.status

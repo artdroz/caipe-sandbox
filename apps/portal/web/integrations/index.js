@@ -4,6 +4,8 @@ import { integrationRegistry } from "./registry.js";
 import "./policy.css";
 import "./security.css";
 
+export { HostedNavigationGuard } from "./caipe/navigation.js";
+
 const registry = integrationRegistry([openshell,kubernetes]);
 
 export function openIntegrationPanel(id, ...args) {
