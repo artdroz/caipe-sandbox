@@ -7,7 +7,7 @@ changes; describe the verification performed.
 ## Local checks
 
 Python uses uv and a committed lock; the browser uses npm and a committed lock.
-Both retain the existing 30-day dependency release delay and reviewed security
+Both use a 7-day dependency release delay and reviewed security
 or SDK compatibility exceptions. Use the checked-in lockfiles for builds.
 
 ```sh

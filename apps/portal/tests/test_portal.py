@@ -375,7 +375,7 @@ def test_branding_and_logo_are_available_before_signin(setup):
     page = browser.get(prefix + "/")
     assert page.status_code == 200
     assert "<title>CAIPE Sandbox</title>" in page.text
-    assert 'href="assets/caipe-sandbox-logo.png"' in page.text
+    assert f'href="{prefix}/assets/caipe-sandbox-logo.png"' in page.text
     logo = browser.get(prefix + "/assets/caipe-sandbox-logo.png")
     assert logo.status_code == 200
     assert logo.headers["content-type"] == "image/png"

@@ -1,6 +1,7 @@
 """Exercise the HTTP-only host proxy and direct WebSocket over real sockets."""
 
 import json
+import re
 import socket
 import threading
 import time
@@ -13,7 +14,7 @@ import pytest
 import uvicorn
 import websocket
 from fastapi import FastAPI, Request
-from fastapi.responses import Response
+from fastapi.responses import RedirectResponse, Response
 from test_caipe import CAIPE, token
 from test_drain import Stream
 from test_portal import OWNER, Omnigent
@@ -52,6 +53,11 @@ def host_proxy(upstream):
 
     @host.api_route("/{path:path}", methods=["GET", "POST"])
     async def forward(request: Request, path: str):
+        if path and request.url.path.endswith("/"):
+            return RedirectResponse(
+                str(request.url.replace(path=request.url.path.rstrip("/"))),
+                status_code=308,
+            )
         forwarded = {
             k: v
             for k, v in request.headers.items()
@@ -108,7 +114,18 @@ def test_http_proxy_then_direct_terminal(prefix, monkeypatch):
         )
         assert response.status_code == 200
         assert response.json()["user_id"] == OWNER
-        assert httpx.get(proxy + prefix + "/").status_code == 200
+        page = httpx.get(proxy + prefix + "/", follow_redirects=True)
+        assert page.status_code == 200
+        assert len(page.history) == (1 if prefix else 0)
+        assert str(page.url).startswith(proxy + "/")
+        for pattern, filename in (
+            (r'<script[^>]+src="([^"]+)"', "portal.js"),
+            (r'<link[^>]+href="([^"]+portal\.css[^"]*)"', "portal.css"),
+        ):
+            asset = re.search(pattern, page.text).group(1)
+            assert page.url.join(asset).path == prefix + "/assets/" + filename
+        logo = re.search(r'<link rel="icon"[^>]+href="([^"]+)"', page.text).group(1)
+        assert httpx.get(page.url.join(logo)).status_code == 200
         assert httpx.get(upstream + prefix + "/api/sandboxes").status_code == 401
         result = httpx.post(
             proxy + path + "-credentials", headers={"Origin": settings.origin}

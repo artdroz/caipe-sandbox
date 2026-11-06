@@ -21,7 +21,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from joserfc.errors import JoseError
 from kubernetes.client import ApiException
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
@@ -472,14 +472,19 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
             if terminal_origin.netloc
             else ""
         )
-        return FileResponse(
-            STATIC / "index.html",
+        return HTMLResponse(
+            (STATIC / "index.html")
+            .read_text(encoding="utf-8")
+            .replace("__PORTAL_BASE_PATH__", quote(prefix, safe="/")),
             headers={
                 "Content-Security-Policy": f"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'{connect_source}; frame-ancestors 'self'; object-src 'none'; base-uri 'none'",
                 "X-Content-Type-Options": "nosniff",
                 "Cache-Control": "no-store",
             },
         )
+
+    if prefix:
+        app.add_api_route(prefix, page, methods=["GET"], include_in_schema=False)
 
     @app.get(prefix + "/assets/{name}")
     def assets(name: str):
