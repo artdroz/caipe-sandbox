@@ -22,6 +22,7 @@ import { namespaceOptions, namespaceLockBadge } from "./namespace-view.js";
 import { openIntegrationPanel, openSecurityPanel, mountIntegrationCreation, HostedNavigationGuard } from "./integrations/index.js";
 import { copyJson } from "./json-view.js";
 import { sandboxMetadata } from "./timestamps.js";
+import { createInventoryQueryNavigation } from "./integrations/caipe/query-navigation.js";
 
 for (const element of document.querySelectorAll("[data-icon]")) element.innerHTML = icon(element.dataset.icon);
 
@@ -70,8 +71,32 @@ const selectedSandboxes = new Set();
 let loginUrl = base + "/auth/login";
 let authConfig = {};
 const hostedNavigationGuard = new HostedNavigationGuard();
-const terminalNavigationGuard = new TerminalNavigationGuard(state => hostedNavigationGuard.update(authConfig, state));
+let terminalNavigationState = {active:false};
+const terminalNavigationGuard = new TerminalNavigationGuard(state => {
+  terminalNavigationState = state;
+  hostedNavigationGuard.update(authConfig, state);
+});
 let signedIn = false;
+let editingInventorySearch = false;
+const inventoryNavigation = createInventoryQueryNavigation({
+  basePath: base,
+  onRestore({query, profile}) {
+    editingInventorySearch = false;
+    byId("admin-filter").value = query;
+    refreshProfileFilter([...sandboxRows.values()]);
+    byId("admin-profile-filter").value = profile;
+    filterInventory();
+  },
+  beforeScopeChange() {
+    if (!terminalNavigationState.active) return true;
+    if (!confirm(`${terminalNavigationState.title}\n\n${terminalNavigationState.message}`)) return false;
+    // The explicit confirmation replaces the otherwise duplicate unload prompt.
+    window.removeEventListener("beforeunload", terminalNavigationGuard.beforeUnload);
+    return true;
+  },
+  onScopeChange: () => location.reload(),
+});
+window.addEventListener("pagehide", () => inventoryNavigation.dispose());
 function showSignin(message = "") {
   message ||= authConfig.login_message || "";
   badgeTooltips.hide();
@@ -437,13 +462,20 @@ function filterInventory() {
   renderAdminInventory([...sandboxRows.values()]);
   updateSelection();
 }
-byId("admin-filter").oninput = filterInventory;
-byId("admin-profile-filter").onchange = filterInventory;
+byId("admin-filter").oninput = () => {
+  const mode = editingInventorySearch ? "replace" : "push";
+  inventoryNavigation.filters(byId("admin-filter").value, byId("admin-profile-filter").value, mode);
+  editingInventorySearch = true;
+};
+byId("admin-filter").onblur = () => { editingInventorySearch = false; };
+byId("admin-profile-filter").onchange = () => inventoryNavigation.filters(byId("admin-filter").value, byId("admin-profile-filter").value);
 function refreshProfileFilter(rows) {
   const choices = inventoryProfiles(profiles, rows);
+  const requested = inventoryNavigation.read().profile;
+  if (requested && !choices.some(profile => profile.id === requested)) choices.push({id:requested,title:"Unavailable profile"});
   const markup = choices.map(profile => `<option value="${esc(profile.id)}">${esc(profile.title)}</option>`).join("");
   if (markup === profileFilterOptions) return;
-  const selected = byId("admin-profile-filter").value;
+  const selected = requested;
   byId("admin-profile-filter").innerHTML = markup;
   if (choices.some(profile => profile.id === selected)) byId("admin-profile-filter").value = selected;
   profileFilterOptions = markup;
@@ -1097,6 +1129,7 @@ setInterval(async () => {
 }, 4000);
 window.addEventListener("pagehide", closeAllTerminals);
 async function start() {
+  inventoryNavigation.initialize();
   try {
     const response = await fetch(base + "/auth/config", {credentials: "same-origin"});
     if ([401,403].includes(response.status)) {

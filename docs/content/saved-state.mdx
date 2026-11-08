@@ -17,3 +17,27 @@ be edited, and how it relates to the saved profile and live workload. See
 [Database and persistence](metadata.md) for database and reconciliation behavior.
 
 <ConfigurationReference key="state" scope="state" />
+
+## Inventory bookmarks
+
+The inventory view and its filters can be bookmarked in the portal URL. These
+parameters describe the view; sandbox configuration continues to live in the
+metadata database.
+
+| Parameter | Meaning |
+| --- | --- |
+| `view=admin` | Administrator inventory; the server still checks the signed-in user's role. |
+| `owner=test-user@example.test` | Shared inventory for that owner, subject to existing sharing permissions. |
+| `q=release` | Inventory text search, up to 256 characters. |
+| `profile=example` | Exact profile ID; an unavailable profile is shown explicitly. |
+
+For example, `?view=admin&q=release&profile=example` restores the administrator
+inventory filters. Back and Forward restore prior filters. Search edits keep a
+single history entry per typing session, and unrelated query parameters and
+section anchors are retained. Hosted portals synchronize the same state with the
+host address bar. Changing inventory scope retains the existing confirmation
+when terminal sessions are open.
+
+The local preview below uses sample inventory data and a bookmarked text filter.
+
+![Filtered administrator inventory with the saved search restored](/img/query-state.png)
