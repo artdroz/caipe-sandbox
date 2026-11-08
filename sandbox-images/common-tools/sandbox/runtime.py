@@ -196,9 +196,17 @@ def run_hook(path, timeout):
                     output.extend(chunk)
                     del output[:-MAX_LOG]
     finally:
-        if process.poll() is None or timed_out:
+        if not timed_out:
+            try:
+                process.wait(timeout=max(0, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                timed_out = True
+        if timed_out:
             try:
                 os.killpg(process.pid, signal.SIGKILL)
+            except PermissionError:
+                # Sandboxed runtimes may permit signals only to individual processes.
+                process.kill()
             except ProcessLookupError:
                 pass
         process.wait(timeout=2)
