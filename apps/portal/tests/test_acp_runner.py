@@ -63,9 +63,12 @@ time.sleep(60)
 """
     process = launch(tmp_path, [sys.executable, "-u", "-c", code])
     try:
-        frame = read_frame(process)
-        assert frame["type"] == "stdout"
-        assert base64.b64decode(frame["data"]) == b"protected\n"
+        output = bytearray()
+        while b"\n" not in output:
+            frame = read_frame(process)
+            assert frame["type"] == "stdout"
+            output.extend(base64.b64decode(frame["data"]))
+        assert bytes(output) == b"protected\n"
         process.stdin.write(b'{"type":"cancel"}\n')
         process.stdin.flush()
         final = read_frame(process)
