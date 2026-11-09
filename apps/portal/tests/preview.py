@@ -106,6 +106,9 @@ protected["openShell"]["spec"]["command"].extend(["--service", "omnigent"])
 protected["ui"]["resources"]["default"].update(
     requests={"cpu": "250m", "memory": "512Mi"}, limits={"cpu": "1", "memory": "2Gi"}
 )
+protected["ui"]["resources"]["minimum"]["storage"] = "5Gi"
+protected["ui"]["resources"]["maximum"]["storage"] = "100Gi"
+protected["openShell"]["spec"]["environment"]["HOME"] = "/sandbox/home"
 definitions.append(protected)
 
 settings = replace(
@@ -130,6 +133,7 @@ settings = replace(
     openshell_gateway_id="gateway",
     openshell_gateway_service_account="gateway",
     openshell_runner_service_account="openshell-runner",
+    openshell_storage_mode="persistentVolumeClaim",
 )
 
 

@@ -47,11 +47,11 @@ test("sandboxes without a recorded profile still show their configuration", () =
 });
 
 test("configuration includes the details removed from the card footer", () => {
-  const markup=sandboxConfiguration(data,{id:"bright-otter",title:'Tools <script>bad()</script>',owner:"engineer@example.com",namespace_owner:"owner@example.com",namespace:"sandbox-bright-otter",namespace_strategy:"perSandbox",created_at:"2026-10-01T12:00:00Z",updated_at:"2026-11-04T14:00:00Z",profile:{id:"engineering",revision:"sha256:abc"},allocation:{cpu_request_millicores:500,memory_request_mib:512}});
+  const markup=sandboxConfiguration(data,{id:"bright-otter",title:'Tools <script>bad()</script>',owner:"engineer@example.com",namespace_owner:"owner@example.com",namespace:"sandbox-bright-otter",namespace_strategy:"perSandbox",created_at:"2026-10-01T12:00:00Z",updated_at:"2026-11-04T14:00:00Z",profile:{id:"engineering",revision:"sha256:abc"},allocation:{cpu_request_millicores:500,memory_request_mib:512,workspace_gib:32}});
   assert.match(markup,/configuration-metadata/);
   assert.match(markup,/datetime="2026-10-01T12:00:00.000Z"/);
   assert.match(markup,/datetime="2026-11-04T14:00:00.000Z"/);
-  for(const value of ["bright-otter","engineer@example.com","sandbox-bright-otter","owner@example.com","0.5 cores","0.5 GiB memory","sha256:abc"]) assert.ok(markup.includes(value));
+  for(const value of ["bright-otter","engineer@example.com","sandbox-bright-otter","owner@example.com","0.5 cores","0.5 GiB memory","Storage requested","32 GiB","sha256:abc"]) assert.ok(markup.includes(value));
   assert.match(markup,/Tools &lt;script&gt;bad\(\)&lt;\/script&gt;/);
   assert.doesNotMatch(markup,/<script>/);
 });

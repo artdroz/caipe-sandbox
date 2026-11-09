@@ -435,6 +435,10 @@
               "type": "integer",
               "minimum": 1
             },
+            "storageMode": {
+              "type": "string",
+              "enum": ["gateway", "persistentVolumeClaim"]
+            },
             "namespaceLabel": {
               "type": "string"
             },

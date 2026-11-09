@@ -22,7 +22,7 @@ from ..agent_sandbox.metadata import (
 )
 from ..agent_sandbox.status import enrich
 from ..status import IntegrationStatus
-from . import policy
+from . import policy, volumes
 from .client import Gateway, data, scope
 
 PREFIX = "sandbox.caipe.io/"
@@ -88,6 +88,7 @@ class Integration:
             self.settings.namespace_access_role.encode()
         ).hexdigest()[:32]
         self.provider_instance = f"{self.settings.openshell_gateway_id}/{self.instance}"
+        self.volumes = volumes.WorkspaceVolumes(self)
 
     @staticmethod
     def binding(cr):
@@ -155,6 +156,11 @@ class Integration:
         self.catalog.verify_creation_absent(
             meta["workspace"], meta["name"], ["workspace-" + meta["name"]]
         )
+        if volumes.managed(manifest):
+            self.volumes.cancel(manifest)
+            self.catalog.verify_creation_absent(
+                meta["workspace"], meta["name"], [volumes.claim_name(manifest)]
+            )
 
     @property
     def client(self):
@@ -234,21 +240,23 @@ class Integration:
         if existing.get(PREFIX + "owner"):
             if existing[PREFIX + "owner"] != owner:
                 raise HTTPException(409, "OpenShell ownership metadata conflicts")
-            return cr
-        return self.catalog.custom.patch_namespaced_custom_object(
-            GROUP,
-            VERSION,
-            meta.workspace,
-            PLURAL,
-            meta.name,
-            {
-                "metadata": {
-                    "resourceVersion": cr["metadata"]["resourceVersion"],
-                    "annotations": annotations,
-                    "labels": labels,
-                }
-            },
-        )
+        else:
+            cr = self.catalog.custom.patch_namespaced_custom_object(
+                GROUP,
+                VERSION,
+                meta.workspace,
+                PLURAL,
+                meta.name,
+                {
+                    "metadata": {
+                        "resourceVersion": cr["metadata"]["resourceVersion"],
+                        "annotations": annotations,
+                        "labels": labels,
+                    }
+                },
+            )
+        self.volumes.bind(cr)
+        return cr
 
     @native_errors
     def create(self, body, request_id):
@@ -259,6 +267,7 @@ class Integration:
             return self._create(body, request_id)
 
     def _create(self, body, request_id):
+        body = deepcopy(body)
         meta = body["metadata"]
         namespace = meta["workspace"]
         labels = {**meta["labels"], PREFIX + "instance": self.instance}
@@ -291,6 +300,8 @@ class Integration:
             raise HTTPException(
                 409, "OpenShell workspace belongs to another owner or portal"
             )
+        if volumes.managed(body):
+            meta["annotations"][volumes.UID] = self.volumes.ensure(body)
         sandbox = self.client.call(
             "CreateSandbox",
             pb.CreateSandboxRequest(
@@ -486,31 +497,43 @@ class Integration:
             pb.DeleteWorkspaceRequest(name=namespace, allow_missing=True),
         )
 
+    @native_errors
     def allocation(self, cr, *, snapshot=None):
         from kubernetes.utils.quantity import parse_quantity
 
         from ...resources import Allocation, allocation
 
         if cr["apiVersion"] != "openshell.v1":
-            size = allocation(cr)
+            if not volumes.managed(cr):
+                return allocation(cr)
+            pvc = self.volumes.verify(cr, self.volumes.read(cr))
+            disk = int(
+                parse_quantity(pvc["spec"]["resources"]["requests"]["storage"])
+                / 1024**3
+            )
+            spec = next(
+                c
+                for c in cr["spec"]["podTemplate"]["spec"]["containers"]
+                if c["name"] == "agent"
+            )["resources"]
         else:
             spec = cr["spec"]["template"]["resources"]
-            size = Allocation(
-                cpu_request_millicores=int(
-                    parse_quantity(spec["requests"]["cpu"]) * 1000
-                ),
-                cpu_limit_millicores=int(parse_quantity(spec["limits"]["cpu"]) * 1000),
-                memory_request_mib=int(
-                    parse_quantity(spec["requests"]["memory"]) / 1024**2
-                ),
-                memory_limit_mib=int(
-                    parse_quantity(spec["limits"]["memory"]) / 1024**2
-                ),
-                workspace_gib=snapshot["resources"]["workspace_gib"]
+            disk = (
+                int(cr["metadata"]["annotations"][volumes.SIZE])
+                if volumes.managed(cr)
+                else snapshot["resources"]["workspace_gib"]
                 if snapshot
-                else self.settings.openshell_storage_gib,
+                else self.settings.openshell_storage_gib
             )
-        return size
+        return Allocation(
+            cpu_request_millicores=int(parse_quantity(spec["requests"]["cpu"]) * 1000),
+            cpu_limit_millicores=int(parse_quantity(spec["limits"]["cpu"]) * 1000),
+            memory_request_mib=int(
+                parse_quantity(spec["requests"]["memory"]) / 1024**2
+            ),
+            memory_limit_mib=int(parse_quantity(spec["limits"]["memory"]) / 1024**2),
+            workspace_gib=disk,
+        )
 
     def usage(self, cr):
         from kubernetes.utils.quantity import parse_quantity
@@ -649,7 +672,8 @@ class Integration:
             namespace_owner=namespace_owner,
             namespace_uid=namespace_uid,
         )
-        return replace(draft, reference=self.manifest(draft.reference))
+        draft = replace(draft, reference=self.manifest(draft.reference))
+        return volumes.prepare(draft, self.settings)
 
     @native_errors
     def namespace_info(self, owner, name):

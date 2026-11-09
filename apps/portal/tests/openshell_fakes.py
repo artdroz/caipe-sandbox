@@ -1,6 +1,7 @@
 """In-memory native gateway for tests and the loopback UI preview."""
 
 import json
+from copy import deepcopy
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -9,9 +10,61 @@ from google.protobuf.json_format import MessageToDict
 from openshell._proto import openshell_pb2 as pb
 from openshell._proto import sandbox_pb2 as spb
 from test_portal import Kubernetes
+from kubernetes import client
+from kubernetes.client import ApiException
 
 
 class Cluster(Kubernetes):
+    def __init__(self):
+        super().__init__()
+        self.pvcs = {}
+
+    def create_namespaced_persistent_volume_claim(self, namespace, body, **kwargs):
+        key = namespace, body["metadata"]["name"]
+        if key in self.pvcs:
+            raise ApiException(409)
+        pvc = deepcopy(body)
+        pvc["metadata"].update(uid=str(uuid4()), resourceVersion="1")
+        self.pvcs[key] = pvc
+        return deepcopy(pvc)
+
+    def read_namespaced_persistent_volume_claim(self, name, namespace, **kwargs):
+        if (namespace, name) not in self.pvcs:
+            raise ApiException(404)
+        return deepcopy(self.pvcs[namespace, name])
+
+    def patch_namespaced_persistent_volume_claim(self, name, namespace, body, **kwargs):
+        pvc = self.pvcs[namespace, name]
+        assert body["metadata"]["uid"] == pvc["metadata"]["uid"]
+        if body["metadata"]["resourceVersion"] != pvc["metadata"]["resourceVersion"]:
+            raise ApiException(409)
+        pvc["metadata"].update(deepcopy(body["metadata"]))
+        pvc["metadata"]["resourceVersion"] = str(
+            int(pvc["metadata"]["resourceVersion"]) + 1
+        )
+        return deepcopy(pvc)
+
+    def delete_namespaced_persistent_volume_claim(
+        self, name, namespace, body, **kwargs
+    ):
+        pvc = self.pvcs[namespace, name]
+        assert body["preconditions"] == {
+            k: pvc["metadata"][k] for k in ("uid", "resourceVersion")
+        }
+        del self.pvcs[namespace, name]
+
+    def list_namespaced_persistent_volume_claim(self, namespace, **kwargs):
+        with client.ApiClient() as api:
+            return SimpleNamespace(
+                items=[
+                    api.deserialize(
+                        SimpleNamespace(data=json.dumps(pvc)), "V1PersistentVolumeClaim"
+                    )
+                    for (ns, _), pvc in self.pvcs.items()
+                    if ns == namespace
+                ]
+            )
+
     create_namespaced_limit_range = Kubernetes.create_baseline
 
     def read_namespaced_limit_range(self, name, namespace):
@@ -47,6 +100,14 @@ class Native:
     def CreateSandbox(self, request, **kwargs):
         self.create_calls += 1
         namespace = request.workspace_scope.workspace
+        driver = MessageToDict(request.spec.template.driver_config).get("kubernetes", {})
+        for volume in driver.get("volumes", []):
+            assert volume["name"] != "workspace", "OpenShell reserves its automatic workspace volume name"
+            pvc = self.kube.pvcs[namespace, volume["persistent_volume_claim"]["claim_name"]]
+            assert pvc["metadata"]["labels"]["openshell.ai/sandbox-attachable"] == "true"
+            assert pvc["metadata"]["labels"]["openshell.ai/sandbox-attachable-workspace"] == namespace
+        for mount in driver.get("containers", {}).get("agent", {}).get("volume_mounts", []):
+            assert mount["mount_path"].startswith("/sandbox/"), "OpenShell reserves the workspace root"
         native_id = str(uuid4())
         resources = MessageToDict(request.spec.template.resources)
         cr = self.kube.create_namespaced_custom_object(
@@ -88,6 +149,19 @@ class Native:
                 },
             },
         )
+        if driver:
+            cr["spec"].pop("volumeClaimTemplates")
+            cr["spec"]["podTemplate"]["spec"]["volumes"] = [
+                {
+                    "name": v["name"],
+                    "persistentVolumeClaim": {
+                        "claimName": v["persistent_volume_claim"]["claim_name"],
+                        "readOnly": v["persistent_volume_claim"]["read_only"],
+                    },
+                }
+                for v in driver["volumes"]
+            ]
+            self.kube.items[namespace, request.name] = deepcopy(cr)
         annotations = {
             **request.annotations,
             "internal.openshell.ai/compute-runtime-identity": f"kubernetes://{namespace}/{cr['metadata']['uid']}/supervisor-uid-{request.name}",
@@ -218,7 +292,13 @@ class Native:
     def DeleteSandbox(self, request, **kwargs):
         self.calls.append(("delete", request))
         del self.sandboxes[(request.workspace_scope.workspace, request.name)]
-        del self.kube.items[(request.workspace_scope.workspace, request.name)]
+        cr = self.kube.items.pop((request.workspace_scope.workspace, request.name))
+        for key, pvc in list(self.kube.pvcs.items()):
+            if any(
+                ref["uid"] == cr["metadata"]["uid"]
+                for ref in pvc["metadata"].get("ownerReferences", [])
+            ):
+                del self.kube.pvcs[key]
         return pb.DeleteSandboxResponse()
 
 

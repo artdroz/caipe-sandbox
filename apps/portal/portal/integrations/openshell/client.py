@@ -40,6 +40,17 @@ def failure(error, method=None):
         grpc.StatusCode.RESOURCE_EXHAUSTED: 429,
     }.get(error.code(), 503)
     detail = error.details() or ""
+    if (
+        error.code() == grpc.StatusCode.FAILED_PRECONDITION
+        and "allow_driver_config" in detail
+    ):
+        exception = CreationRejected if method == "CreateSandbox" else HTTPException
+        return exception(
+            409,
+            "OpenShell's gateway is not configured for selectable workspace disks. "
+            "Ask an administrator to enable Kubernetes allowDriverConfig with resource admission, "
+            "then cancel this creation and create a new micro VM.",
+        )
     if error.code() == grpc.StatusCode.RESOURCE_EXHAUSTED and (
         "durable mutation admission limit" in detail
     ):

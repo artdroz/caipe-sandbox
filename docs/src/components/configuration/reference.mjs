@@ -451,7 +451,9 @@ const notes = {
   "settings.openShell.clientSecret":
     "Name of the existing gateway mTLS Secret: ca.crt, tls.crt and tls.key are mounted read-only at /etc/portal-openshell.",
   "settings.openShell.storageGiB":
-    "Fixed OpenShell disk size, which must match gateway-native storage configuration. It does not resize the gateway's volumes.",
+    "Fixed disk size in gateway mode, matching gateway-native configuration. In persistentVolumeClaim mode this is only a fallback for profiles without ui.resources; it never resizes existing disks.",
+  "settings.openShell.storageMode":
+    "gateway uses the native fixed-size workspace. persistentVolumeClaim lets the portal provision a profile-bounded PVC and attach it through OpenShell; enable native allowDriverConfig and resource admission. Existing disks retain their attachment.",
   "settings.openShell.namespaceLabel":
     "Label used to recognize portal-managed OpenShell workspace namespaces; match gateway operator-mode settings.",
   "settings.openShell.gatewayPodSelector":
@@ -573,6 +575,7 @@ const envValues = {
   OPENSHELL_GATEWAY_SERVICE_ACCOUNT: "settings.openShell.gatewayServiceAccount",
   OPENSHELL_RUNNER_SERVICE_ACCOUNT: "settings.openShell.sandboxServiceAccount",
   OPENSHELL_STORAGE_GIB: "settings.openShell.storageGiB",
+  OPENSHELL_STORAGE_MODE: "settings.openShell.storageMode",
   OPENSHELL_GATEWAY_POD_SELECTOR: "settings.openShell.gatewayPodSelector",
   OPENSHELL_NAMESPACE_LABEL: "settings.openShell.namespaceLabel",
   OPENSHELL_SUPERVISOR_RESOURCES: "settings.openShell.supervisorResources",
@@ -732,7 +735,7 @@ export function describe(entry, scope) {
   if (notes[path]) return notes[path];
   if (scope === "profile" && path.startsWith("ui.resources.")) {
     const [, , bound, kind, field] = path.split(".");
-    return `${bound === "default" ? "Starting" : bound === "minimum" ? "Smallest permitted" : "Largest permitted"} ${kind === "storage" ? "persistent disk size" : `${kind === "requests" ? "reserved" : "limit for"} ${field}`} in Kubernetes quantities. ${kind === "storage" ? "OpenShell's chosen size must match the platform's fixed storageGiB." : "Requests must not exceed limits; all sizes must fit the platform envelope."}`;
+    return `${bound === "default" ? "Starting" : bound === "minimum" ? "Smallest permitted" : "Largest permitted"} ${kind === "storage" ? "persistent disk size" : `${kind === "requests" ? "reserved" : "limit for"} ${field}`} in Kubernetes quantities. ${kind === "storage" ? "OpenShell allows disk choices with persistentVolumeClaim storage mode; gateway mode requires the fixed storageGiB." : "Requests must not exceed limits; all sizes must fit the platform envelope."}`;
   }
   if (path.startsWith("resourcePolicy.defaults."))
     return `Platform fallback ${path.includes("cpu_") ? "CPU allocation in whole millicores" : path.includes("memory_") ? "memory allocation in whole MiB" : "persistent storage allocation in whole GiB"} when the profile does not supply this resource default.`;

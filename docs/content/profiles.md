@@ -45,14 +45,14 @@ profiles. For example, namespace configuration is the chart's top-level
 
 ## What engineers can change
 
-| Setting                            | Portal behavior                                                                                                                                                                                                        |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Display name and profile           | Chosen during creation; the default profile is preselected.                                                                                                                                                            |
-| CPU and memory requests and limits | Chosen within profile and platform bounds. Direct Agent Sandbox supports later changes only when fully suspended and its Pod has stopped. OpenShell does not currently support resizing an existing micro VM.          |
-| Persistent storage size            | Chosen at creation for direct Agent Sandbox. OpenShell storage is fixed by `settings.openShell.storageGiB`, which must match the gateway configuration.                                                                |
-| Namespace                          | The platform decides whether engineers can reuse an accessible namespace. Namespace sharing applies to every sandbox in that namespace.                                                                                |
-| OpenShell policy                   | Creation controls allow supported filesystem/process settings. The owner or an administrator can edit supported network policy through **Network & security**; those saved edits override the starting profile policy. |
-| Kubernetes NetworkPolicy           | Read-only for engineers in **Network & security**; editing is restricted to platform administrators.                                                                                                                   |
+| Setting                            | Portal behavior                                                                                                                                                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Display name and profile           | Chosen during creation; the default profile is preselected.                                                                                                                                                              |
+| CPU and memory requests and limits | Chosen within profile and platform bounds. Direct Agent Sandbox supports later changes only when fully suspended and its Pod has stopped. OpenShell does not currently support resizing an existing micro VM.            |
+| Persistent storage size            | Chosen at creation for direct Agent Sandbox and OpenShell's `persistentVolumeClaim` storage mode. OpenShell's default `gateway` mode uses the fixed `settings.openShell.storageGiB`, matching the gateway configuration. |
+| Namespace                          | The platform decides whether engineers can reuse an accessible namespace. Namespace sharing applies to every sandbox in that namespace.                                                                                  |
+| OpenShell policy                   | Creation controls allow supported filesystem/process settings. The owner or an administrator can edit supported network policy through **Network & security**; those saved edits override the starting profile policy.   |
+| Kubernetes NetworkPolicy           | Read-only for engineers in **Network & security**; editing is restricted to platform administrators.                                                                                                                     |
 
 The UI only offers capabilities supported by that backend. Selecting a profile
 does not grant arbitrary image, runtime, mount or security overrides through
@@ -78,9 +78,58 @@ sidecar-style init containers are not supported. When using `ui.resources`, do
 not also put CPU/memory defaults or claim storage sizing in `agentSandbox.spec`:
 the renderer rejects that duplication and writes the selected values itself.
 
-OpenShell maps CPU and memory to `openShell.spec.template.resources`. If its
-profile supplies `ui.resources`, use the gateway's fixed disk size for the
-storage default; engineers cannot change it in the form.
+OpenShell maps CPU and memory to `openShell.spec.template.resources`. Disk
+choices depend on the deployment's storage mode.
+
+### OpenShell disk choices
+
+To let engineers choose disk size at creation, configure:
+
+```yaml
+settings:
+  storageClass: your-storage-class
+  openShell:
+    storageMode: persistentVolumeClaim
+openShell:
+  server:
+    drivers:
+      kubernetes:
+        allowDriverConfig: true
+        resourceAdmission:
+          enabled: true
+```
+
+For an external gateway, configure the equivalent native settings there. Set
+`ui.resources.default.storage`, `minimum.storage` and `maximum.storage` on each
+profile, for example **20Gi**, **5Gi** and **100Gi**. CPU and memory sections
+remain required. Platform resource bounds and quotas also apply; changing only
+the form does not grant extra capacity.
+
+The portal creates a `ReadWriteOnce` filesystem PVC in the sandbox's namespace,
+then uses OpenShell's native `driver_config.kubernetes` attachment to mount it at
+the profile's `openShell.spec.environment.HOME`. OpenShell reserves `/sandbox`
+itself, so set `HOME` to a normalized child such as `/sandbox/home`. Configure
+the terminal to start there, for example `["bash", "-lc", "cd \"$HOME\"; exec bash -i"]`.
+The portal generates this attachment; arbitrary profile-supplied
+`driver_config` remains rejected. The PVC is bound to the native Sandbox UID so
+it survives suspend/resume and is garbage-collected when that Sandbox is deleted.
+Uncertain creations retain their disk until recovery verifies the runtime outcome.
+
+An explicit workspace mount replaces OpenShell's automatic workspace and its
+image-copy initialization. The image's startup must initialize an empty writable
+home directory; use `sandbox-start --seed-dir /path/in/image` when supplying initial
+startup files. Do not depend on image files hidden underneath the mount.
+
+The default `gateway` mode preserves the existing fixed-size behavior. Keep its
+profile storage default equal to `settings.openShell.storageGiB` and the gateway's
+workspace size. Changing mode or profile defaults affects new creations only:
+existing sandboxes keep their disk attachment and size. Neither mode currently
+offers disk expansion through the portal.
+
+The selected amount appears as **Storage requested** in **View/Sync
+Configuration**. It is the configured disk request, not current filesystem usage.
+
+![Requested disk size in the configuration summary](../static/img/openshell-storage-summary.jpg)
 
 ## What actually enforces the configuration?
 

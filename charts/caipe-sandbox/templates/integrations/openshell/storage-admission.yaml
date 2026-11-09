@@ -1,0 +1,59 @@
+{{- if and .Values.settings.openShell.endpoint (eq .Values.settings.openShell.storageMode "persistentVolumeClaim") }}
+{{- if and .Values.openShell.enabled (not (dig "server" "drivers" "kubernetes" "allowDriverConfig" false .Values.openShell)) }}
+{{- fail "OpenShell persistentVolumeClaim storage requires openShell.server.drivers.kubernetes.allowDriverConfig=true" }}
+{{- end }}
+{{- if and .Values.openShell.enabled (not (dig "server" "drivers" "kubernetes" "resourceAdmission" "enabled" true .Values.openShell)) }}
+{{- fail "OpenShell persistentVolumeClaim storage requires native resourceAdmission.enabled=true" }}
+{{- end }}
+{{- $base := printf "%s-%s" .Release.Namespace .Release.Name | trunc 48 | trimSuffix "-" }}
+{{- $instance := printf "%s-access" $base | sha256sum | trunc 32 }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: {{ $base }}-openshell-storage
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  failurePolicy: Fail
+  variables:
+    - name: target
+      expression: "request.operation == 'DELETE' ? oldObject : object"
+  matchConditions:
+    - name: portal-service-account
+      expression: "request.userInfo.username == 'system:serviceaccount:{{ .Release.Namespace }}:{{ .Release.Name }}'"
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE, DELETE]
+        resources: [persistentvolumeclaims]
+  validations:
+    - expression: >-
+        namespaceObject != null
+        && has(namespaceObject.metadata.labels)
+        && namespaceObject.metadata.labels['sandbox.caipe.io/instance'] == '{{ $base }}-access'
+        && namespaceObject.metadata.labels['sandbox.caipe.io/backend'] == 'openShell'
+        && variables.target.metadata.name.startsWith('portal-workspace-')
+        && has(variables.target.metadata.labels)
+        && variables.target.metadata.labels['app.kubernetes.io/name'] == 'agent-sandbox-portal'
+        && variables.target.metadata.labels['sandbox.caipe.io/instance'] == '{{ $instance }}'
+        && 'sandbox.caipe.io/request-id' in variables.target.metadata.labels
+        && 'sandbox.caipe.io/owner' in variables.target.metadata.labels
+        && variables.target.metadata.labels['openshell.ai/sandbox-attachable'] == 'true'
+        && variables.target.metadata.labels['openshell.ai/sandbox-attachable-workspace'] == request.namespace
+      message: Portal storage writes are restricted to its workspace PVCs in managed OpenShell namespaces.
+    - expression: >-
+        request.operation != 'UPDATE' ||
+          (object.spec == oldObject.spec && object.metadata.labels == oldObject.metadata.labels)
+      message: Portal may attach workspace ownership but cannot resize or replace a workspace PVC.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: {{ $base }}-openshell-storage
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  policyName: {{ $base }}-openshell-storage
+  validationActions: [Deny]
+{{- end }}
