@@ -1,6 +1,20 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {globalPolicyBadges, sandboxPolicyBadges} from "../admin-policy-view.js";
+import {globalPolicyBadges, renderGlobalPolicySummary, sandboxPolicyBadges} from "../admin-policy-view.js";
+
+test("older pages can refresh without a restriction-summary element", () => {
+  assert.doesNotThrow(() => renderGlobalPolicySummary(null, {creation_disabled:true}));
+});
+
+test("current pages show active restrictions and clear the summary when removed", () => {
+  const element = {innerHTML:"", hidden:true, get childElementCount() { return this.innerHTML ? 1 : 0; }};
+  renderGlobalPolicySummary(element, {creation_disabled:true});
+  assert.match(element.innerHTML, /Global restrictions/);
+  assert.equal(element.hidden, false);
+  renderGlobalPolicySummary(element);
+  assert.equal(element.innerHTML, "");
+  assert.equal(element.hidden, true);
+});
 
 test("inactive settings and announcements do not look like active restrictions", () => {
   const controls = {reason:"Old reason", announcement:{title:"Hello"}, users:{"a@example.test":{creation_disabled:false}}, namespaces:{n:{network_policy:null}}};

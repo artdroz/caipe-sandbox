@@ -26,6 +26,13 @@ export function globalPolicyBadges(controls = {}) {
   return badges.join("");
 }
 
+export function renderGlobalPolicySummary(element, controls) {
+  // Older HTML may still be served during a rolling upgrade.
+  if (!element) return;
+  element.innerHTML = globalPolicyBadges(controls);
+  element.hidden = !element.childElementCount;
+}
+
 export function sandboxPolicyBadges(sandbox, controls = {}) {
   const badges = [];
   const owner = controls.users?.[sandbox.owner];

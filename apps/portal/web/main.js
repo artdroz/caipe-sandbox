@@ -21,7 +21,7 @@ import { openIntegrationPanel, openSecurityPanel, mountIntegrationCreation, Host
 import { copyJson } from "./json-view.js";
 import { sandboxMetadata } from "./timestamps.js";
 import { createInventoryQueryNavigation } from "./query-navigation.js";
-import { globalPolicyBadges, sandboxPolicyBadges } from "./admin-policy-view.js";
+import { renderGlobalPolicySummary, sandboxPolicyBadges } from "./admin-policy-view.js";
 
 for (const element of document.querySelectorAll("[data-icon]")) element.innerHTML = icon(element.dataset.icon);
 
@@ -626,9 +626,7 @@ async function refresh() {
     }
     renderHelperActions();
     adminControls = data.controls;
-    const policySummary = byId("admin-policy-summary");
-    policySummary.innerHTML = adminView ? globalPolicyBadges(adminControls) : "";
-    policySummary.hidden = !policySummary.childElementCount;
+    renderGlobalPolicySummary(byId("admin-policy-summary"), adminView ? adminControls : undefined);
     globalAnnouncement = data.announcement;
     byId("global-announcement").hidden = !globalAnnouncement;
     byId("announcement-title").textContent = globalAnnouncement?.title || "";
