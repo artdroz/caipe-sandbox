@@ -28,6 +28,12 @@
 .runtime-error [role=status] { margin: 8px 0 0; font-size: 10px; }
 .operation-error-explanation { margin: 0 0 9px; font-size: 12px; line-height: 1.6; }
 .admin-inventory .runtime-error { margin: 8px 0 0; min-width: 190px; max-width: 340px; }
+.admin-policy-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.admin-policy-summary { margin: 0 0 12px; }
+.admin-policy-badge { display: inline-flex; align-items: center; gap: 4px; width: fit-content; padding: 3px 7px; border: 1px solid #e4c681; border-radius: 5px; background: #fff8e7; color: #80591b; font-size: 10px; font-weight: 600; white-space: nowrap; cursor: help; }
+.admin-policy-badge .icon { width: 12px; height: 12px; }
+.admin-policy-badge:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+@media(prefers-color-scheme:dark) { .admin-policy-badge { color: #f2cf88; background: #372e1d; border-color: #776138; } }
 @media(prefers-color-scheme:dark) { .runtime-error { background: #382622; color: #f1b3a9; border-color: #84554d; } .runtime-error-body,.runtime-error pre { border-color: #84554d66; } }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }

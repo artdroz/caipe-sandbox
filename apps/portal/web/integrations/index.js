@@ -5,6 +5,7 @@ import "./policy.css";
 import "./security.css";
 
 export { HostedNavigationGuard } from "./caipe/navigation.js";
+export { createCAIPEQueryBridge } from "./caipe/query-navigation.js";
 
 const registry = integrationRegistry([openshell,kubernetes]);
 
