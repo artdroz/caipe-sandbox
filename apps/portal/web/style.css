@@ -57,7 +57,8 @@ main { margin: 0 auto; padding: 0 24px 16px; max-width: 1600px; }
 .brand-logo { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
 .topbar-right { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-left: auto; flex-wrap: wrap; }
 .header-links { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
-.header-links a { font-size: 12px; font-weight: 550; text-decoration: none; }
+.header-links a { display: inline-flex; align-items: center; gap: 5px; font-size: 16px; font-weight: 550; text-decoration: none; }
+.header-links .icon { width: 14px; height: 14px; flex: none; opacity: .75; }
 .header-links a:hover { text-decoration: underline; }
 .account { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .avatar { width: 30px; height: 30px; background: var(--inset); color: var(--accent); border: 1px solid var(--line); border-radius: 5px; display: grid; place-items: center; flex-shrink: 0; font: 10px var(--mono); }

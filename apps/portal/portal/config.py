@@ -48,6 +48,7 @@ class Settings:
     openshell_gateway_service_account: str = ""
     openshell_runner_service_account: str = ""
     openshell_storage_gib: int = 20
+    openshell_storage_mode: str = "gateway"
     openshell_gateway_pod_selector: str = '{"app.kubernetes.io/name":"openshell"}'
     openshell_namespace_label: str = "sandbox.caipe.io/openshell"
     openshell_supervisor_resources: str = "{}"

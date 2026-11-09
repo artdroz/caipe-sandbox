@@ -999,3 +999,80 @@ def test_native_openshell_diagnostics_work_without_a_collector(tmp_path):
     gateway = tomllib.loads(config["data"]["gateway.toml"])["openshell"]["gateway"]
     assert gateway["log_level"] == "info"
     assert "otlp" not in gateway and "ocsf_log" not in gateway
+
+
+def test_openshell_pvc_storage_permissions_are_scoped_and_opt_in(tmp_path):
+    result = render(
+        tmp_path,
+        {
+            "openShell": {
+                "endpoint": "https://gateway:8080",
+                "gatewayId": "gateway",
+                "gatewayServiceAccount": "gateway",
+                "sandboxServiceAccount": "protected-runner",
+                "clientSecret": "gateway-client",
+                "storageMode": "persistentVolumeClaim",
+            }
+        },
+    )
+    assert result.returncode == 0, result.stderr
+    objects = [o for o in yaml.safe_load_all(result.stdout) if o]
+    role = next(
+        o
+        for o in objects
+        if o["kind"] == "ClusterRole"
+        and o["metadata"]["name"].endswith("-openshell-storage")
+    )
+    assert role["rules"] == [
+        {
+            "apiGroups": [""],
+            "resources": ["persistentvolumeclaims"],
+            "verbs": ["get", "create", "patch", "delete"],
+        }
+    ]
+    assert not any(
+        o["kind"] == "ClusterRoleBinding"
+        and o["roleRef"]["name"] == role["metadata"]["name"]
+        for o in objects
+    )
+    policy = next(
+        o
+        for o in objects
+        if o["kind"] == "ValidatingAdmissionPolicy"
+        and o["metadata"]["name"].endswith("-openshell-storage")
+    )
+    rules = policy["spec"]["validations"]
+    assert "['sandbox.caipe.io/backend'] == 'openShell'" in rules[0]["expression"]
+    assert "object.spec == oldObject.spec" in rules[1]["expression"]
+    disabled = render(tmp_path, {})
+    assert disabled.returncode == 0, disabled.stderr
+    assert not any(
+        o and o["metadata"]["name"].endswith("-openshell-storage")
+        for o in yaml.safe_load_all(disabled.stdout)
+    )
+
+
+def test_bundled_openshell_requires_driver_attachment_approval_for_pvc_mode(tmp_path):
+    settings = {
+        "openShell": {
+            "endpoint": "https://gateway:8080",
+            "storageMode": "persistentVolumeClaim",
+            "clientSecret": "gateway-client",
+        }
+    }
+    result = render(tmp_path, settings, openShell={"enabled": True})
+    assert result.returncode != 0
+    assert "allowDriverConfig=true" in result.stderr
+    result = render(
+        tmp_path,
+        settings,
+        openShell={
+            "enabled": True,
+            "agentSandbox": {"preflight": {"enabled": False}},
+            "server": {
+                "credentialStorage": {"existingSecret": "gateway-key"},
+                "drivers": {"kubernetes": {"allowDriverConfig": True}},
+            },
+        },
+    )
+    assert result.returncode == 0, result.stderr

@@ -722,6 +722,15 @@
       "minimum": 1
     },
     {
+      "path": "settings.openShell.storageMode",
+      "type": "string",
+      "default": "gateway",
+      "enum": [
+        "gateway",
+        "persistentVolumeClaim"
+      ]
+    },
+    {
       "path": "settings.openShell.supervisorResources.requests.cpu",
       "type": "value"
     },
@@ -1195,6 +1204,11 @@
       "path": "PORTAL_OPENSHELL_STORAGE_GIB",
       "type": "int",
       "default": 20
+    },
+    {
+      "path": "PORTAL_OPENSHELL_STORAGE_MODE",
+      "type": "str",
+      "default": "gateway"
     },
     {
       "path": "PORTAL_OPENSHELL_GATEWAY_POD_SELECTOR",

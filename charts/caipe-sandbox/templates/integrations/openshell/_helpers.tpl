@@ -9,6 +9,8 @@
   value: {{ .Values.settings.openShell.sandboxServiceAccount | quote }}
 - name: PORTAL_OPENSHELL_STORAGE_GIB
   value: {{ .Values.settings.openShell.storageGiB | quote }}
+- name: PORTAL_OPENSHELL_STORAGE_MODE
+  value: {{ .Values.settings.openShell.storageMode | quote }}
 - name: PORTAL_OPENSHELL_SUPERVISOR_RESOURCES
   value: {{ .Values.settings.openShell.supervisorResources | toJson | quote }}
 - name: PORTAL_OPENSHELL_GATEWAY_POD_SELECTOR
@@ -49,6 +51,16 @@
   && object.subjects[0].kind == 'ServiceAccount'
   && object.subjects[0].name == '{{ .Values.settings.openShell.gatewayServiceAccount }}'
   && object.subjects[0].namespace == '{{ .Release.Namespace }}')
+{{- if eq .Values.settings.openShell.storageMode "persistentVolumeClaim" }}
+|| (object.metadata.name == 'sandbox-openshell-storage'
+  && object.roleRef.kind == 'ClusterRole'
+  && object.roleRef.name == '{{ $base }}-access-openshell-storage'
+  && namespaceObject.metadata.labels['sandbox.caipe.io/backend'] == 'openShell'
+  && object.subjects.size() == 1
+  && object.subjects[0].kind == 'ServiceAccount'
+  && object.subjects[0].name == '{{ .Release.Name }}'
+  && object.subjects[0].namespace == '{{ .Release.Namespace }}')
+{{- end }}
 {{- end }}
 {{- end -}}
 
@@ -59,6 +71,7 @@
 {{- define "agent-sandbox-portal.openshell.accessRoles" -}}
 {{- $base := printf "%s-%s" .Release.Namespace .Release.Name | trunc 48 | trimSuffix "-" }}
 {{- if .Values.settings.openShell.endpoint }}, {{ $base }}-access-openshell{{ end -}}
+{{- if and .Values.settings.openShell.endpoint (eq .Values.settings.openShell.storageMode "persistentVolumeClaim") }}, {{ $base }}-access-openshell-storage{{ end -}}
 {{- end -}}
 {{- define "agent-sandbox-portal.openshell.networkPolicySelector" -}}
 || (has(namespaceObject.metadata.labels)

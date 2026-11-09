@@ -4,11 +4,35 @@ import json
 
 from ...config import runner_pull_secrets
 from .profile import supervisor_resources
+from .volumes import enabled
 
 
 def bootstrap(namespaces, name, metadata):
     settings = namespaces.settings
     resources = supervisor_resources(settings)
+    if enabled(settings):
+        namespaces.ensure_object(
+            {
+                "apiVersion": "rbac.authorization.k8s.io/v1",
+                "kind": "RoleBinding",
+                "metadata": {**metadata, "name": "sandbox-openshell-storage"},
+                "roleRef": {
+                    "kind": "ClusterRole",
+                    "apiGroup": "rbac.authorization.k8s.io",
+                    "name": settings.namespace_access_role + "-openshell-storage",
+                },
+                "subjects": [
+                    {
+                        "kind": "ServiceAccount",
+                        "name": settings.portal_service_account,
+                        "namespace": settings.portal_namespace,
+                    }
+                ],
+            },
+            namespaces.rbac.create_namespaced_role_binding,
+            namespaces.rbac.read_namespaced_role_binding,
+            name,
+        )
     namespaces.ensure_object(
         {
             "apiVersion": "v1",

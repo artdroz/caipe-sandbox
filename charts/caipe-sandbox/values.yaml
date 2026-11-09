@@ -147,6 +147,9 @@ settings:
     sandboxServiceAccount: ""
     clientSecret: ""
     storageGiB: 20
+    # gateway: fixed upstream size; persistentVolumeClaim: profile-bounded disk choices.
+    # PVC mode also needs openShell.server.drivers.kubernetes.allowDriverConfig=true.
+    storageMode: gateway
     # Native CPU/memory requests and limits for the trusted supervisor.
     supervisorResources: {}
     namespaceLabel: sandbox.caipe.io/openshell

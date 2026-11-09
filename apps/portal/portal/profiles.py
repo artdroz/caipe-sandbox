@@ -134,7 +134,7 @@ class Profile(BaseModel):
     def revision(self):
         return definition_revision(self.model_dump(exclude_none=True))
 
-    def public(self):
+    def public(self, settings=None):
         backend = profile_backend(self)
         return {
             "id": self.id,
@@ -143,7 +143,7 @@ class Profile(BaseModel):
             "revision": self.revision,
             "helpers": [h.public() for h in self.helpers],
             "backend": backend.key if backend else "agentSandbox",
-            "capabilities": backend.profile.capabilities()
+            "capabilities": backend.profile.capabilities(settings)
             if backend
             else {"resize": True},
         }

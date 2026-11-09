@@ -127,7 +127,7 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
 
     def public_profile(profile):
         return {
-            **profile.public(),
+            **profile.public(settings),
             "integrations": creation_ui(profile),
             "resources": profiles.size(profile).model_dump(),
             "resource_bounds": profiles.bounds(profile),
