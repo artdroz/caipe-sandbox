@@ -59,7 +59,7 @@ const nativeFields = {
     ],
     [
       "template.resources / template.runtime_class_name",
-      "Portal-resolved CPU/memory and deployment-approved runtime. Disk comes from gateway configuration; current portal integration cannot resize an existing VM.",
+      "Portal-resolved CPU/memory and deployment-approved runtime. Disk is fixed in gateway storage mode, or chosen at creation with persistentVolumeClaim mode. Existing VM resources cannot be resized through the current integration.",
     ],
     ["policy.version", "Supported native policy version is 1."],
     [
@@ -72,7 +72,7 @@ const nativeFields = {
     ],
     [
       "template.driver_config",
-      "Caller-supplied driver configuration is not supported by the current integration; it cannot bypass deployment controls.",
+      "Profile-supplied driver configuration is rejected. In persistentVolumeClaim storage mode the portal generates only the approved workspace PVC attachment.",
     ],
   ],
 };

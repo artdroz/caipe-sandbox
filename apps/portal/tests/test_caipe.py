@@ -29,6 +29,15 @@ CAIPE = replace(
 )
 
 
+def test_hosted_loading_shell_uses_embedded_layout_before_javascript(hosted):
+    browser, *_ = hosted
+    page = browser.get("/apps/sandbox/")
+    assert page.status_code == 200
+    assert '<body class="embedded">' in page.text
+    assert 'id="startup"' in page.text
+    assert 'src="/apps/sandbox/assets/portal.js"' in page.text
+
+
 def token(**claims):
     return jwt.encode(
         {"alg": "HS256"},

@@ -1,6 +1,4 @@
-import { Terminal } from "@xterm/xterm";
-import { FitAddon } from "@xterm/addon-fit";
-import { SearchAddon } from "@xterm/addon-search";
+import { terminalLoader } from "./terminal-loader.js";
 import "@xterm/xterm/css/xterm.css";
 import "./style.css";
 import { icon } from "./icons.js";
@@ -19,10 +17,11 @@ import { openWorkspace } from "./workspace-view.js";
 import { runtimeError, runtimeStatus, copyRuntimeError, failedCreation, deletionConfirmation } from "./error-view.js";
 import { cardLayout } from "./card-layout.js";
 import { namespaceOptions, namespaceLockBadge } from "./namespace-view.js";
-import { openIntegrationPanel, openSecurityPanel, mountIntegrationCreation, HostedNavigationGuard } from "./integrations/index.js";
+import { openIntegrationPanel, openSecurityPanel, mountIntegrationCreation, HostedNavigationGuard, createCAIPEQueryBridge } from "./integrations/index.js";
 import { copyJson } from "./json-view.js";
 import { sandboxMetadata } from "./timestamps.js";
-import { createInventoryQueryNavigation } from "./integrations/caipe/query-navigation.js";
+import { createInventoryQueryNavigation } from "./query-navigation.js";
+import { globalPolicyBadges, sandboxPolicyBadges } from "./admin-policy-view.js";
 
 for (const element of document.querySelectorAll("[data-icon]")) element.innerHTML = icon(element.dataset.icon);
 
@@ -39,6 +38,9 @@ let activeSession = null, refreshBusy = false;
 let terminalExit = null;
 let configurationTarget = null;
 const terminalSessions = new TerminalSessions();
+const loadTerminal = terminalLoader();
+const terminalLoadError = "Could not load the terminal. Check your connection and try Open terminal again.";
+let terminalLoading = 0;
 const restartNotifications = new RestartNotifications({
   changed: renderNotificationToggle,
   activate: key => {
@@ -80,6 +82,7 @@ let signedIn = false;
 let editingInventorySearch = false;
 const inventoryNavigation = createInventoryQueryNavigation({
   basePath: base,
+  bridge: createCAIPEQueryBridge(),
   onRestore({query, profile}) {
     editingInventorySearch = false;
     byId("admin-filter").value = query;
@@ -96,7 +99,6 @@ const inventoryNavigation = createInventoryQueryNavigation({
   },
   onScopeChange: () => location.reload(),
 });
-window.addEventListener("pagehide", () => inventoryNavigation.dispose());
 function showSignin(message = "") {
   message ||= authConfig.login_message || "";
   badgeTooltips.hide();
@@ -159,7 +161,12 @@ for (const prefix of ["create","edit"]) {
 }
 function error(err) {
   if (err.loginRequired) return;
-  if (!signedIn) { showSignin(err.message); return; }
+  if (!signedIn) {
+    if (err.status === 403 || byId("app-main").hidden) { showSignin(err.message); return; }
+    byId("startup-message").textContent = "Could not load your sandboxes. Check your connection and try again.";
+    byId("startup-retry").hidden = false;
+    return;
+  }
   const box = byId(byId("create-dialog").open ? "create-error" : "error"); box.hidden = false; box.textContent = err.message;
 }
 function renderSessions() {
@@ -275,15 +282,35 @@ function sendPendingCommand(session) {
     session.pendingCommand = null;
   }
 }
-function openTerminal(id, namespace = null, command = null, {newSession = false, sessionKey = null, helper = null} = {}) {
+async function openTerminal(id, namespace = null, command = null, {newSession = false, sessionKey = null, helper = null} = {}) {
   const sandboxKey = namespace ? `${namespace}/${id}` : id;
-  const row = sandboxRows.get(sandboxKey);
+  let row = sandboxRows.get(sandboxKey);
   if (!row || row.state !== "Running" || (!adminView && !row.can_shell)) return;
   let session = sessionKey ? terminalSessions.get(sessionKey) : newSession ? null : terminalSessions.latest(sandboxKey);
+  let runtime;
+  if (!session) {
+    const uid = row.uid;
+    if (byId("error").textContent === terminalLoadError) byId("error").hidden = true;
+    void restartNotifications.firstTerminalCreated();
+    terminalLoading++;
+    byId("terminal-loading").hidden = false;
+    try { runtime = await loadTerminal(); }
+    catch {
+      error(new Error(terminalLoadError));
+      return;
+    } finally {
+      terminalLoading--;
+      byId("terminal-loading").hidden = !terminalLoading;
+    }
+    row = sandboxRows.get(sandboxKey);
+    if (!signedIn || !row || row.uid !== uid || row.state !== "Running" || row.disabled || (!adminView && !row.can_shell)) return;
+    session = sessionKey ? terminalSessions.get(sessionKey) : newSession ? null : terminalSessions.latest(sandboxKey);
+    if (sessionKey && !session) return;
+  }
   terminalSessions.get(activeSession)?.observer.disconnect();
   byId("terminal-helper-menu").open = false;
   if (!session) {
-    void restartNotifications.firstTerminalCreated();
+    const {Terminal, FitAddon, SearchAddon} = runtime;
     const element = document.createElement("div"); element.className = "terminal-session";
     byId("terminal").append(element);
     const terminal = new Terminal({cursorBlink: true, fontSize: 14, disableStdin: true, theme: {background: "#111827", foreground: "#e5e7eb"}});
@@ -446,7 +473,7 @@ function adminInventory(rows) {
   return `<div class="admin-inventory"><table><thead><tr><th>Select</th><th>Sandbox</th><th>Owner</th><th>Profile</th><th>Namespace</th><th>Status</th><th>CPU / RAM / disk</th><th>Actions</th></tr></thead><tbody>${filtered.map(s => {
     const key = s.namespace + "/" + s.id;
     const action = (name, label, glyph, disabled = false, className = "") => `<button class="secondary ${className}" type="button" data-action="admin-${name}" data-id="${esc(s.id)}" data-namespace="${esc(s.namespace)}" ${disabled ? "disabled" : ""}>${icon(glyph)}${label}</button>`;
-    return `<tr data-sandbox="${esc(key)}"><td><input type="checkbox" data-select-sandbox="${esc(key)}" aria-label="Select ${esc(s.title)}" ${selectedSandboxes.has(key) ? "checked" : ""}></td><td><strong>${esc(s.title)}</strong>${sandboxRestartWarning(key)}<small>${esc(s.native_id || s.id)}</small>${s.admin_control?.notice ? `<small class="admin-message-marker">${icon("message")}${esc(s.admin_control.notice.title)}</small>` : ""}</td><td>${esc(s.owner || "Unassigned")}${s.owner ? action("user", "User restrictions", "shield") : ""}</td><td>${s.profile ? `<span class="profile-badge" title="${esc(s.profile.id)} · ${esc(s.profile.revision)}">${esc(s.profile.title)}</span>` : "—"}</td><td><span class="admin-namespace"><code>${esc(s.namespace)}</code>${namespaceLockBadge(s.namespace_locked,s.id)}</span></td><td><span class="admin-status ${esc(s.state.toLowerCase())}"><i class="led ${s.state === "Running" ? "running" : s.state === "Error" ? "error" : "provisioning"}"></i>${esc(s.state)}</span>${integrationBadges(s.integrations,{key:`admin-${key}/${s.uid || ""}`,assetBase:base + "/assets/integrations",limit:1})}${s.disabled ? `<small class="access-lock-label">${icon("shield")}Access disabled</small>` : ""}<small>${esc(s.disabled ? s.disabled_reason : s.state === "Error" ? "Needs attention" : s.reason || "")}</small>${runtimeError(s)}</td><td>${s.allocation ? `${esc(s.allocation.cpu_limit_millicores/1000)} cores · ${esc(s.allocation.memory_limit_mib/1024)} GiB · ${esc(s.allocation.workspace_gib)} GiB` : "—"}</td><td><div class="admin-actions"><div class="admin-tools-actions" role="group" aria-label="Sandbox tools">${action("terminal", "Terminal", "terminal", s.state !== "Running")}<button class="secondary admin-more" type="button" data-action="admin-menu" data-id="${esc(s.id)}" data-namespace="${esc(s.namespace)}" aria-label="More actions for ${esc(s.title)}" aria-haspopup="true" aria-controls="admin-row-actions" title="Sandbox actions">Actions${icon("chevron")}</button></div><div class="admin-lifecycle-actions" role="group" aria-label="Sandbox lifecycle">${action(s.state === "Suspended" ? "resume" : "suspend", s.state === "Suspended" ? "Resume" : "Suspend", "power", s.state === "Deleting" || s.state === "Suspending" || (s.state !== "Suspended" && s.capabilities?.suspend === false) || (s.disabled && s.state === "Suspended"), s.state === "Suspended" ? "action-resume" : "action-suspend")}${action("delete", failedCreation(s) ? "Cancel creation" : "Delete", "trash", s.state === "Deleting", "action-delete")}</div></div></td></tr>`;
+    return `<tr data-sandbox="${esc(key)}"><td><input type="checkbox" data-select-sandbox="${esc(key)}" aria-label="Select ${esc(s.title)}" ${selectedSandboxes.has(key) ? "checked" : ""}></td><td><strong>${esc(s.title)}</strong>${sandboxRestartWarning(key)}<small>${esc(s.native_id || s.id)}</small>${sandboxPolicyBadges(s, adminControls)}${s.admin_control?.notice ? `<small class="admin-message-marker">${icon("message")}${esc(s.admin_control.notice.title)}</small>` : ""}</td><td>${esc(s.owner || "Unassigned")}${s.owner ? action("user", "User restrictions", "shield") : ""}</td><td>${s.profile ? `<span class="profile-badge" title="${esc(s.profile.id)} · ${esc(s.profile.revision)}">${esc(s.profile.title)}</span>` : "—"}</td><td><span class="admin-namespace"><code>${esc(s.namespace)}</code>${namespaceLockBadge(s.namespace_locked,s.id)}</span></td><td><span class="admin-status ${esc(s.state.toLowerCase())}"><i class="led ${s.state === "Running" ? "running" : s.state === "Error" ? "error" : "provisioning"}"></i>${esc(s.state)}</span>${integrationBadges(s.integrations,{key:`admin-${key}/${s.uid || ""}`,assetBase:base + "/assets/integrations",limit:1})}${s.disabled ? `<small class="access-lock-label">${icon("shield")}Access disabled</small>` : ""}<small>${esc(s.disabled ? s.disabled_reason : s.state === "Error" ? "Needs attention" : s.reason || "")}</small>${runtimeError(s)}</td><td>${s.allocation ? `${esc(s.allocation.cpu_limit_millicores/1000)} cores · ${esc(s.allocation.memory_limit_mib/1024)} GiB · ${esc(s.allocation.workspace_gib)} GiB` : "—"}</td><td><div class="admin-actions"><div class="admin-tools-actions" role="group" aria-label="Sandbox tools">${action("terminal", "Terminal", "terminal", s.state !== "Running")}<button class="secondary admin-more" type="button" data-action="admin-menu" data-id="${esc(s.id)}" data-namespace="${esc(s.namespace)}" aria-label="More actions for ${esc(s.title)}" aria-haspopup="true" aria-controls="admin-row-actions" title="Sandbox actions">Actions${icon("chevron")}</button></div><div class="admin-lifecycle-actions" role="group" aria-label="Sandbox lifecycle">${action(s.state === "Suspended" ? "resume" : "suspend", s.state === "Suspended" ? "Resume" : "Suspend", "power", s.state === "Deleting" || s.state === "Suspending" || (s.state !== "Suspended" && s.capabilities?.suspend === false) || (s.disabled && s.state === "Suspended"), s.state === "Suspended" ? "action-resume" : "action-suspend")}${action("delete", failedCreation(s) ? "Cancel creation" : "Delete", "trash", s.state === "Deleting", "action-delete")}</div></div></td></tr>`;
   }).join("") || `<tr><td colspan="8">No matching sandboxes.</td></tr>`}</tbody></table></div>`;
 }
 function renderAdminInventory(rows) {
@@ -599,6 +626,9 @@ async function refresh() {
     }
     renderHelperActions();
     adminControls = data.controls;
+    const policySummary = byId("admin-policy-summary");
+    policySummary.innerHTML = adminView ? globalPolicyBadges(adminControls) : "";
+    policySummary.hidden = !policySummary.childElementCount;
     globalAnnouncement = data.announcement;
     byId("global-announcement").hidden = !globalAnnouncement;
     byId("announcement-title").textContent = globalAnnouncement?.title || "";
@@ -675,6 +705,9 @@ async function refresh() {
     }
     byId("refresh-state").textContent = "Refreshed " + new Date().toLocaleTimeString();
     signedIn = true;
+    byId("startup").hidden = true;
+    byId("inventory-content").hidden = false;
+    byId("account").hidden = false;
     byId("signin-screen").hidden = true;
     byId("app-main").hidden = false;
     sandboxLayout.update();
@@ -1130,11 +1163,14 @@ setInterval(async () => {
 window.addEventListener("pagehide", closeAllTerminals);
 async function start() {
   inventoryNavigation.initialize();
+  byId("startup-message").textContent = "Loading your sandboxes…";
+  byId("startup-retry").hidden = true;
   try {
     const response = await fetch(base + "/auth/config", {credentials: "same-origin"});
     if ([401,403].includes(response.status)) {
       byId("sso-signin").hidden = true;
-      throw new Error("Your host session is unavailable or access was denied. Reopen Sandbox from the host application to continue.");
+      showSignin("Your host session is unavailable or access was denied. Reopen Sandbox from the host application to continue.");
+      return;
     }
     if (!response.ok) throw new Error("Portal login configuration is unavailable");
     const auth = authConfig = await response.json();
@@ -1143,6 +1179,8 @@ async function start() {
       const link = document.createElement("a");
       link.textContent = title; link.href = url;
       link.target = "_blank"; link.rel = "noopener noreferrer";
+      link.insertAdjacentHTML("beforeend", icon("external"));
+      link.title = "Opens in a new tab";
       return link;
     }));
     links.hidden = !links.childElementCount;
@@ -1169,4 +1207,5 @@ byId("sign-out").onclick = async () => {
     location.href = base + "/";
   } catch (err) { error(err); }
 };
+byId("startup-retry").onclick = start;
 start();

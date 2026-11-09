@@ -127,7 +127,7 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
 
     def public_profile(profile):
         return {
-            **profile.public(),
+            **profile.public(settings),
             "integrations": creation_ui(profile),
             "resources": profiles.size(profile).model_dump(),
             "resource_bounds": profiles.bounds(profile),
@@ -477,7 +477,8 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
         return HTMLResponse(
             (STATIC / "index.html")
             .read_text(encoding="utf-8")
-            .replace("__PORTAL_BASE_PATH__", quote(prefix, safe="/")),
+            .replace("__PORTAL_BASE_PATH__", quote(prefix, safe="/"))
+            .replace("__PORTAL_BODY_CLASS__", "embedded" if auth.terminal_credentials else ""),
             headers={
                 "Content-Security-Policy": f"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'{connect_source}; frame-ancestors 'self'; object-src 'none'; base-uri 'none'",
                 "X-Content-Type-Options": "nosniff",
@@ -492,6 +493,7 @@ def create_app(settings=None, store=None, upstream=None, workspace=None):
     def assets(name: str):
         if name not in {
             "portal.js",
+            "terminal-runtime.js",
             "portal.css",
             "licenses.txt",
             "caipe-sandbox-logo.png",

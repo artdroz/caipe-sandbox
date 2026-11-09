@@ -9,7 +9,7 @@ const actionable = file => ["new","changed","deleted","invalid","untracked"].inc
 export function fileTemplate(kind, name = "my-service.conf") {
   if (kind === "startup") return '#!/bin/bash\nset -e\n\nmkdir -p "$HOME/projects"\n';
   const program = name.replace(/\.conf$/, "");
-  return `[program:${program}]\ncommand=python3 -m http.server 8080\ndirectory=%(ENV_HOME)s\nautostart=true\nautorestart=true\nstopasgroup=true\nkillasgroup=true\nstopwaitsecs=5\nredirect_stderr=true\nstdout_logfile=%(ENV_SANDBOX_STATE)s/logs/${program}.log\nstdout_logfile_maxbytes=1MB\nstdout_logfile_backups=1\n`;
+  return `[program:${program}]\ncommand=python3 -m http.server 8080\ndirectory=%(ENV_HOME)s\nautostart=true\nautorestart=true\nstopasgroup=false\nkillasgroup=false\nstopwaitsecs=5\nredirect_stderr=true\nstdout_logfile=%(ENV_SANDBOX_STATE)s/logs/${program}.log\nstdout_logfile_maxbytes=1MB\nstdout_logfile_backups=1\n`;
 }
 
 export function configurationDiff(before, after) {

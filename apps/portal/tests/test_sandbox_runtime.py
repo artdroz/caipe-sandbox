@@ -141,6 +141,39 @@ def test_startup_order_failure_timeout_and_resume(home, monkeypatch):
     assert (home / "order").read_text() == "first\nlast\nfirst\nlast\n"
 
 
+@pytest.mark.parametrize("exit_code", [0, 4])
+def test_startup_waits_after_output_closes_without_group_signals(
+    home, monkeypatch, exit_code
+):
+    def deny_group_signal(*args):
+        raise PermissionError("Process-group signals are unavailable")
+
+    monkeypatch.setattr(runtime.os, "killpg", deny_group_signal)
+    path = runtime.file_path("startup", "early-close.sh")
+    path.write_text(
+        f"echo completed\nexec 1>&- 2>&-\nsleep 0.05\nexit {exit_code}\n"
+    )
+    result = runtime.run_hook(path, 2)
+    assert result["exit_code"] == exit_code
+    assert result["log"] == "completed\n"
+    assert not result["timed_out"]
+
+
+def test_startup_timeout_reaps_child_when_group_signals_are_denied(home, monkeypatch):
+    def deny_group_signal(*args):
+        raise PermissionError("Process-group signals are unavailable")
+
+    monkeypatch.setattr(runtime.os, "killpg", deny_group_signal)
+    path = runtime.file_path("startup", "timeout.sh")
+    path.write_text("echo started\nexec sleep 10\n")
+    started = time.monotonic()
+    result = runtime.run_hook(path, 0.15)
+    assert result["timed_out"]
+    assert result["exit_code"] == -signal.SIGKILL
+    assert result["log"] == "started\n"
+    assert time.monotonic() - started < 2
+
+
 def test_real_supervisor_restart_apply_logs_and_shutdown(home):
     config = "[program:example]\ncommand=/bin/sleep 100\nstartsecs=0\nstopwaitsecs=1\nautorestart=true\nstopasgroup=true\nkillasgroup=true\n"
     saved = save("service", "example.conf", config)

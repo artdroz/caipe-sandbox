@@ -14,3 +14,4 @@ apps/portal/portal/static/licenses.txt
 apps/portal/build/
 security-reports/
 dist/
+apps/portal/portal/static/terminal-runtime.js

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { inventoryQuery, createInventoryQueryNavigation } from "../integrations/caipe/query-navigation.js";
+import { inventoryQuery, createInventoryQueryNavigation } from "../query-navigation.js";
+import { createCAIPEQueryBridge } from "../integrations/caipe/query-navigation.js";
 
 function setup(search = "", embedded = false) {
   const listeners = new Map(), documentListeners = new Map(), messages = [], restored = [];
@@ -19,7 +20,7 @@ function setup(search = "", embedded = false) {
     back() { env.location = entries[--index]; listeners.get("popstate")(); },
     forward() { env.location = entries[++index]; listeners.get("popstate")(); },
   };
-  const navigation = createInventoryQueryNavigation({ env, basePath: "/apps/sandbox", onRestore: query => restored.push(query),
+  const navigation = createInventoryQueryNavigation({ env, bridge: embedded ? createCAIPEQueryBridge({env}) : undefined, basePath: "/apps/sandbox", onRestore: query => restored.push(query),
     beforeScopeChange: () => env.acceptScope, onScopeChange: () => { scopeChanges++; },
   });
   const receive = (data, overrides = {}) => listeners.get("message")({ source: env.parent, origin: env.location.origin,
@@ -92,4 +93,39 @@ test("completed document scope navigation is mirrored once instead of being reve
 
 test("disposal removes window and document listeners", () => {
   const app = setup(); app.navigation.dispose(); assert.equal(app.listeners.size, 0); assert.equal(app.documentListeners.size, 0);
+});
+
+test("standalone filters survive cached page restoration and subsequent Back/Forward", () => {
+  const app = setup("?view=admin"); app.navigation.initialize();
+  app.navigation.filters("first", "engineering");
+  app.listeners.get("pagehide")({persisted:true});
+  app.env.history.replaceState(null, "", "/apps/sandbox?view=admin&q=restored");
+  app.listeners.get("pageshow")({persisted:true});
+  assert.equal(app.restored.at(-1).query, "restored");
+  app.env.history.back(); assert.equal(app.restored.at(-1).query, "");
+  app.env.history.forward(); assert.equal(app.restored.at(-1).query, "restored");
+});
+
+test("cached hosted pages retain their query bridge and scope confirmation", () => {
+  const app = setup("?view=admin", true); app.connect(); app.navigation.initialize();
+  app.navigation.filters("before", "engineering");
+  app.listeners.get("pagehide")({persisted:true});
+  app.messages.length = 0;
+  app.receive({ type:"caipe.agenticApp.navigation.v1", href:"/apps/sandbox?view=admin&q=after" });
+  assert.equal(app.restored.at(-1).query, "after");
+  assert.equal(app.messages.length, 0);
+  app.env.acceptScope = false;
+  const link = {href:"https://portal.example.test/apps/sandbox", target:"", hasAttribute:()=>false};
+  const click = {button:0,target:{closest:()=>link},preventDefault(){this.prevented=true;}};
+  app.documentListeners.get("click")(click);
+  assert.equal(click.prevented, true); assert.equal(app.scopeChanges(), 0);
+  assert.equal(app.env.location.searchParams.get("view"), "admin");
+});
+
+test("permanent page exit disposes native and hosted navigation handlers", () => {
+  for (const embedded of [false,true]) {
+    const app=setup("", embedded); if (embedded) app.connect();
+    app.listeners.get("pagehide")({persisted:false});
+    assert.equal(app.listeners.size,0); assert.equal(app.documentListeners.size,0);
+  }
 });

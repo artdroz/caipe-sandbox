@@ -384,6 +384,47 @@ def test_branding_and_logo_are_available_before_signin(setup):
     assert browser.get(prefix + "/assets/app.py").status_code == 404
 
 
+def test_initial_page_shows_public_loading_shell_without_account_or_inventory(setup):
+    from html.parser import HTMLParser
+
+    class Elements(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.by_id = {}
+
+        def handle_starttag(self, tag, attrs):
+            attributes = dict(attrs)
+            if "id" in attributes:
+                self.by_id[attributes["id"]] = attributes
+
+    browser, _, _, _ = setup
+    page = browser.get(BASE.removesuffix("/api") + "/")
+    elements = Elements()
+    elements.feed(page.text)
+    assert "hidden" not in elements.by_id["app-main"]
+    assert "hidden" not in elements.by_id["startup"]
+    assert "hidden" in elements.by_id["account"]
+    assert "hidden" in elements.by_id["inventory-content"]
+    assert "hidden" in elements.by_id["admin-nav"]
+    assert "disabled" in elements.by_id["new-sandbox"]
+    assert "__PORTAL_BODY_CLASS__" not in page.text
+    assert '<body class="">' in page.text
+
+
+def test_terminal_runtime_is_available_at_the_portal_prefix_on_retry(setup, tmp_path, monkeypatch):
+    import portal.app as portal_app
+
+    browser, _, _, _ = setup
+    script = "export class Terminal {}"
+    (tmp_path / "terminal-runtime.js").write_text(script)
+    monkeypatch.setattr(portal_app, "STATIC", tmp_path)
+    response = browser.get(BASE.removesuffix("/api") + "/assets/terminal-runtime.js?retry=1")
+    assert response.status_code == 200
+    assert response.text == script
+    assert "javascript" in response.headers["content-type"]
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+
 def test_create_is_idempotent_and_owner_is_server_derived(setup):
     browser, _store, kube, _ = setup
     request_id = str(uuid4())

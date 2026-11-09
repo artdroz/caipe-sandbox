@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict
 
 from ...config import runtime_classes
 from ...resources import Allocation, chosen, policy
+from .volumes import enabled, home_path
 
 
 class OpenShell(BaseModel):
@@ -21,6 +22,11 @@ class OpenShell(BaseModel):
 def validate_settings(settings):
     from .client import gateway_address
     from .service import namespace_name
+
+    if settings.openshell_storage_mode not in {"gateway", "persistentVolumeClaim"}:
+        raise ValueError(
+            "OpenShell storageMode must be gateway or persistentVolumeClaim"
+        )
 
     if not all(
         (
@@ -39,6 +45,8 @@ def validate_settings(settings):
 
 
 def resource_bounds(settings):
+    if enabled(settings):
+        return {}
     return {
         "workspace_gib": {
             "min": settings.openshell_storage_gib,
@@ -48,12 +56,18 @@ def resource_bounds(settings):
 
 
 def validate_size(allocation, settings):
-    if allocation.workspace_gib != settings.openshell_storage_gib:
+    if (
+        not enabled(settings)
+        and allocation.workspace_gib != settings.openshell_storage_gib
+    ):
         raise ValueError("OpenShell disk size is fixed by the gateway configuration")
 
 
-def capabilities():
-    return {"resize": False, "storage_source": "platform"}
+def capabilities(settings=None):
+    return {
+        "resize": False,
+        "storage_source": "profile" if settings and enabled(settings) else "platform",
+    }
 
 
 def validate_spec(spec):
@@ -93,8 +107,7 @@ def size(profile, settings):
 
 
 def render(profile, allocation, settings):
-    if allocation.workspace_gib != settings.openshell_storage_gib:
-        raise ValueError("OpenShell disk size is fixed by the gateway configuration")
+    validate_size(allocation, settings)
     spec = deepcopy(profile.openShell.spec)
     template = spec.setdefault("template", {})
     runtime = template.setdefault("runtime_class_name", settings.runtime_class)
@@ -102,6 +115,8 @@ def render(profile, allocation, settings):
         raise ValueError("OpenShell requires a deployment-approved runtime class")
     template["resources"] = allocation.container_resources()
     validate_spec(spec)
+    if enabled(settings):
+        home_path(spec)
     return spec
 
 
@@ -118,7 +133,11 @@ def supervisor_resources(settings):
                 parse_quantity(resources[kind][resource])
                 for kind in ("requests", "limits")
             )
-            if not request.is_finite() or not limit.is_finite() or not 0 < request <= limit:
+            if (
+                not request.is_finite()
+                or not limit.is_finite()
+                or not 0 < request <= limit
+            ):
                 raise ValueError
     except (KeyError, TypeError, ValueError, DecimalException):
         raise ValueError(

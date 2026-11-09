@@ -56,7 +56,7 @@ test("file, log and error content is escaped",()=>{
 });
 test("service template uses native fields and bounded logs",()=>{
  const template=fileTemplate("service","my-api.conf");
- for(const value of ["[program:my-api]","autorestart=true","stopasgroup=true","stdout_logfile_maxbytes=1MB"])assert.ok(template.includes(value));
+ for(const value of ["[program:my-api]","autorestart=true","stopasgroup=false","killasgroup=false","stdout_logfile_maxbytes=1MB"])assert.ok(template.includes(value));
  assert.match(fileTemplate("startup"),/^#!\/bin\/bash/);
 });
 test("unsupported images show the capability message without an editor",()=>{
