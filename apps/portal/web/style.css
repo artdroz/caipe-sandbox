@@ -668,3 +668,8 @@ body.embedded .topbar>.brand,body.embedded .account{display:none}
 body.embedded .topbar:has(.view-tabs[hidden]):has(#header-links[hidden]){display:none}
 body.embedded .topbar{justify-content:flex-start;margin-bottom:16px}
 body.embedded main{padding-top:16px}
+
+.startup { padding: 24px 0; color: var(--muted); }
+.startup > p { margin: 0 0 16px; }
+.startup-placeholders { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 16px; margin-top: 20px; }
+.startup-placeholders > div { height: 180px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
