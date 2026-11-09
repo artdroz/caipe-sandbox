@@ -1,6 +1,4 @@
-import { Terminal } from "@xterm/xterm";
-import { FitAddon } from "@xterm/addon-fit";
-import { SearchAddon } from "@xterm/addon-search";
+import { terminalLoader } from "./terminal-loader.js";
 import "@xterm/xterm/css/xterm.css";
 import "./style.css";
 import { icon } from "./icons.js";
@@ -38,6 +36,9 @@ let activeSession = null, refreshBusy = false;
 let terminalExit = null;
 let configurationTarget = null;
 const terminalSessions = new TerminalSessions();
+const loadTerminal = terminalLoader();
+const terminalLoadError = "Could not load the terminal. Check your connection and try Open terminal again.";
+let terminalLoading = 0;
 const restartNotifications = new RestartNotifications({
   changed: renderNotificationToggle,
   activate: key => {
@@ -134,7 +135,12 @@ for (const prefix of ["create","edit"]) {
 }
 function error(err) {
   if (err.loginRequired) return;
-  if (!signedIn) { showSignin(err.message); return; }
+  if (!signedIn) {
+    if (err.status === 403 || byId("app-main").hidden) { showSignin(err.message); return; }
+    byId("startup-message").textContent = "Could not load your sandboxes. Check your connection and try again.";
+    byId("startup-retry").hidden = false;
+    return;
+  }
   const box = byId(byId("create-dialog").open ? "create-error" : "error"); box.hidden = false; box.textContent = err.message;
 }
 function renderSessions() {
@@ -250,15 +256,35 @@ function sendPendingCommand(session) {
     session.pendingCommand = null;
   }
 }
-function openTerminal(id, namespace = null, command = null, {newSession = false, sessionKey = null, helper = null} = {}) {
+async function openTerminal(id, namespace = null, command = null, {newSession = false, sessionKey = null, helper = null} = {}) {
   const sandboxKey = namespace ? `${namespace}/${id}` : id;
-  const row = sandboxRows.get(sandboxKey);
+  let row = sandboxRows.get(sandboxKey);
   if (!row || row.state !== "Running" || (!adminView && !row.can_shell)) return;
   let session = sessionKey ? terminalSessions.get(sessionKey) : newSession ? null : terminalSessions.latest(sandboxKey);
+  let runtime;
+  if (!session) {
+    const uid = row.uid;
+    if (byId("error").textContent === terminalLoadError) byId("error").hidden = true;
+    void restartNotifications.firstTerminalCreated();
+    terminalLoading++;
+    byId("terminal-loading").hidden = false;
+    try { runtime = await loadTerminal(); }
+    catch {
+      error(new Error(terminalLoadError));
+      return;
+    } finally {
+      terminalLoading--;
+      byId("terminal-loading").hidden = !terminalLoading;
+    }
+    row = sandboxRows.get(sandboxKey);
+    if (!signedIn || !row || row.uid !== uid || row.state !== "Running" || row.disabled || (!adminView && !row.can_shell)) return;
+    session = sessionKey ? terminalSessions.get(sessionKey) : newSession ? null : terminalSessions.latest(sandboxKey);
+    if (sessionKey && !session) return;
+  }
   terminalSessions.get(activeSession)?.observer.disconnect();
   byId("terminal-helper-menu").open = false;
   if (!session) {
-    void restartNotifications.firstTerminalCreated();
+    const {Terminal, FitAddon, SearchAddon} = runtime;
     const element = document.createElement("div"); element.className = "terminal-session";
     byId("terminal").append(element);
     const terminal = new Terminal({cursorBlink: true, fontSize: 14, disableStdin: true, theme: {background: "#111827", foreground: "#e5e7eb"}});
@@ -643,6 +669,9 @@ async function refresh() {
     }
     byId("refresh-state").textContent = "Refreshed " + new Date().toLocaleTimeString();
     signedIn = true;
+    byId("startup").hidden = true;
+    byId("inventory-content").hidden = false;
+    byId("account").hidden = false;
     byId("signin-screen").hidden = true;
     byId("app-main").hidden = false;
     sandboxLayout.update();
@@ -1097,11 +1126,14 @@ setInterval(async () => {
 }, 4000);
 window.addEventListener("pagehide", closeAllTerminals);
 async function start() {
+  byId("startup-message").textContent = "Loading your sandboxes…";
+  byId("startup-retry").hidden = true;
   try {
     const response = await fetch(base + "/auth/config", {credentials: "same-origin"});
     if ([401,403].includes(response.status)) {
       byId("sso-signin").hidden = true;
-      throw new Error("Your host session is unavailable or access was denied. Reopen Sandbox from the host application to continue.");
+      showSignin("Your host session is unavailable or access was denied. Reopen Sandbox from the host application to continue.");
+      return;
     }
     if (!response.ok) throw new Error("Portal login configuration is unavailable");
     const auth = authConfig = await response.json();
@@ -1136,4 +1168,5 @@ byId("sign-out").onclick = async () => {
     location.href = base + "/";
   } catch (err) { error(err); }
 };
+byId("startup-retry").onclick = start;
 start();
